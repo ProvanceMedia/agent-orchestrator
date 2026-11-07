@@ -5,7 +5,7 @@ export PATH=/usr/bin:/bin:/usr/sbin:/sbin
 fail() { echo "Orchestrator repair: $*" >&2; exit 1; }
 @@ROOT_CHECK@@
 [ "${3:-}" = / ] || fail 'Install only on the startup volume.'
-app='/Applications/Agent Orchestrator.app'
+app='/Applications/Swarm 3.0.app'
 [ ! -L /Applications ] && [ ! -L "$app" ] || fail 'The destination must not be a symbolic link.'
 [ ! -e "$app" ] || [ -d "$app" ] || fail 'The destination is not an application bundle.'
 # sysctl identifies Apple Silicon even when Installer runs under Rosetta.
@@ -19,7 +19,7 @@ processes=$(/bin/ps -axo comm=) || fail 'Cannot check running applications.'
 # comm is the executable path, not arbitrary arguments mentioning AO.
 if printf '%s\n' "$processes" | /usr/bin/awk '
   /\/Contents\/MacOS\/agent-orchestrator$/ { found=1 }
-  /\/Agent Orchestrator[.]app\/Contents\// { found=1 }
+  /\/Swarm 3[.]0[.]app\/Contents\// { found=1 }
   /\/dev[.]agent-orchestrator[.]desktop[.]ShipIt\/.*\/ShipIt$/ { found=1 }
   /\/dev[.]agent-orchestrator[.]desktop[.]ShipIt\/ShipIt$/ { found=1 }
   END { exit !found }'; then

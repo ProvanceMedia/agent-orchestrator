@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { SHELL_PANEL_SPRING } from "@/lib/motion-spring";
 import { isLinuxPlatform, isMacPlatform } from "../lib/platform";
 import { sidebarIsVisible, useUiStore } from "../stores/ui-store";
-import { AOMascot } from "./AOMascot";
+import { SwarmMark } from "./SwarmMark";
 import type { AppShortcutId } from "../../shared/shortcuts";
 import { BuildInfoTooltip } from "./BuildInfoTooltip";
 import { Button } from "./ui/button";
@@ -159,8 +159,8 @@ export function TitlebarNav({
           >
             <BuildInfoTooltip>
               <span className="inline-flex min-w-0 items-center gap-1.5">
-                <AOMascot className="h-5.5 w-5.5 shrink-0" />
-                <span className="min-w-0 truncate" data-brand-label="">Orchestrator</span>
+                <SwarmMark className="h-5.5 w-5.5 shrink-0" small />
+                <span className="min-w-0 truncate font-mono text-[13px] uppercase tracking-[0.34em]" data-brand-label="">Swarm</span>
               </span>
             </BuildInfoTooltip>
           </span>

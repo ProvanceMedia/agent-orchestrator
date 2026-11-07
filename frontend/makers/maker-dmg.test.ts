@@ -149,7 +149,7 @@ describe("MakerDMG", () => {
 		await new MakerDMG().make(makeOptions);
 		const [, options] = buildForge.mock.calls.at(-1)!;
 		const dmg = options.config.dmg;
-		expect(dmg.title).toBe("Orchestrator");
+		expect(dmg.title).toBe("Swarm 3.0");
 		expect(dmg.iconSize).toBe(128);
 		expect(dmg.background).toBe(BACKGROUND_IMAGE);
 		expect(path.basename(BACKGROUND_IMAGE)).toBe("background.png");

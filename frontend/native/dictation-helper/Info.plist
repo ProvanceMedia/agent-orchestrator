@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleIdentifier</key>
-	<string>dev.agent-orchestrator.desktop.dictation</string>
+	<string>com.provancemedia.swarm3.dictation</string>
 	<key>CFBundleName</key>
-	<string>Orchestrator</string>
+	<string>Swarm 3.0</string>
 	<key>CFBundleDisplayName</key>
-	<string>Orchestrator</string>
+	<string>Swarm 3.0</string>
 	<key>CFBundleExecutable</key>
 	<string>Orchestrator</string>
 	<key>CFBundleIconFile</key>
@@ -22,8 +22,8 @@
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Orchestrator uses the microphone to dictate messages.</string>
+	<string>Swarm 3.0 uses the microphone to dictate messages.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Orchestrator turns your speech into message text.</string>
+	<string>Swarm 3.0 turns your speech into message text.</string>
 </dict>
 </plist>

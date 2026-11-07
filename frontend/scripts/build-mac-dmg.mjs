@@ -35,11 +35,11 @@ const frontendDir = path.join(path.dirname(fileURLToPath(import.meta.url)), ".."
 
 // The bundle keeps its current name: `ao start`, the updater, stale-copy cleanup
 // and the repair installer look it up by this exact name.
-export const APP_NAME = "Agent Orchestrator";
+export const APP_NAME = "Swarm 3.0";
 export const APP_BUNDLE_NAME = `${APP_NAME}.app`;
 // The mounted volume: Finder's window title and sidebar entry. Nothing looks
 // it up by name.
-export const VOLUME_NAME = "Orchestrator";
+export const VOLUME_NAME = "Swarm 3.0";
 
 // Window and icon geometry in Finder points. Positions are icon centres. The
 // window is the window FRAME (Finder's title bar takes ~32pt of it), so the

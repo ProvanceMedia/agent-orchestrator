@@ -192,8 +192,8 @@ const config: ForgeConfig = {
 			// helper's own usage strings and its disclaim. Without the speech key
 			// it kills the helper. The microphone string also covers terminals and
 			// agents, which macOS attributes to this app.
-			NSSpeechRecognitionUsageDescription: "Orchestrator turns your speech into message text.",
-			NSMicrophoneUsageDescription: "Orchestrator uses the microphone for dictation and for tools you run in it.",
+			NSSpeechRecognitionUsageDescription: "Swarm 3.0 turns your speech into message text.",
+			NSMicrophoneUsageDescription: "Swarm 3.0 uses the microphone for dictation and for tools you run in it.",
 		},
 		protocols: [AUTH_PROTOCOL],
 		appCategoryType: "public.app-category.developer-tools",
@@ -378,7 +378,7 @@ const config: ForgeConfig = {
 		// custom install dir or proper uninstaller (issue #401).
 		new MakerNSIS(
 			{
-				appId: "dev.agent-orchestrator.desktop",
+				appId: "com.provancemedia.swarm3",
 				// The name shown in the installer, the updater, the shortcuts, and
 				// Windows Apps. It matches the app's display name in main.ts.
 				productName: WINDOWS_DISPLAY_NAME,
@@ -402,8 +402,8 @@ const config: ForgeConfig = {
 		// break the signature seal on the way in (see makers/maker-dmg.ts, #3267).
 		new MakerDMG(
 			{
-				appId: "dev.agent-orchestrator.desktop",
-				productName: "Agent Orchestrator",
+				appId: "com.provancemedia.swarm3",
+				productName: "Swarm 3.0",
 			},
 			["darwin"],
 		),
@@ -413,9 +413,9 @@ const config: ForgeConfig = {
 		// prefer a system package.
 		new MakerAppImage(
 			{
-				appId: "dev.agent-orchestrator.desktop",
-				productName: "Orchestrator",
-				appImage: { artifactName: "Agent Orchestrator-${version}.${ext}" },
+				appId: "com.provancemedia.swarm3",
+				productName: "Swarm 3.0",
+				appImage: { artifactName: "Swarm 3.0-${version}.${ext}" },
 				icon: "assets/icon.png",
 				protocols: [AUTH_PROTOCOL],
 			},
@@ -431,7 +431,7 @@ const config: ForgeConfig = {
 					bin: EXECUTABLE_NAME,
 					icon: "assets/icon.png",
 					maintainer: appPackage.author,
-					homepage: "https://github.com/aoagents/agent-orchestrator",
+					homepage: "https://github.com/ProvanceMedia/agent-orchestrator",
 					mimeType: [AUTH_PROTOCOL_MIME_TYPE],
 				},
 			},
@@ -443,7 +443,7 @@ const config: ForgeConfig = {
 					icon: "assets/icon.png",
 					// rpmbuild rejects a spec with an empty License field.
 					license: "MIT",
-					homepage: "https://github.com/aoagents/agent-orchestrator",
+					homepage: "https://github.com/ProvanceMedia/agent-orchestrator",
 					mimeType: [AUTH_PROTOCOL_MIME_TYPE],
 				},
 			},

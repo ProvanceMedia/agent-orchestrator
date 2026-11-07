@@ -17,11 +17,11 @@ import {
 	type StaleAppCopy,
 } from "./stale-app-copies";
 
-const RUNNING_PATH = "/Applications/Agent Orchestrator.app";
+const RUNNING_PATH = "/Applications/Swarm 3.0.app";
 const RUNNING_VERSION = "0.13.1-nightly.202609121623";
-const DOWNLOADS_COPY = "/Users/user/Downloads/Agent Orchestrator.app";
-const DESKTOP_COPY = "/Users/user/Desktop/Agent Orchestrator.app";
-const STAGED_PATH = "/Users/user/Downloads/Agent Orchestrator.app.ao-retiring-test";
+const DOWNLOADS_COPY = "/Users/user/Downloads/Swarm 3.0.app";
+const DESKTOP_COPY = "/Users/user/Desktop/Swarm 3.0.app";
+const STAGED_PATH = "/Users/user/Downloads/Swarm 3.0.app.ao-retiring-test";
 const ORIGINAL_IDENTITY = { device: 1, inode: 10 };
 
 describe("readBundleMetadata", () => {
@@ -34,7 +34,7 @@ describe("readBundleMetadata", () => {
 	it("reads the exact identifier and version from Info.plist", async () => {
 		const directory = await mkdtemp(path.join(os.tmpdir(), "ao-stale-copy-"));
 		temporaryDirectories.push(directory);
-		const bundle = path.join(directory, "Agent Orchestrator.app");
+		const bundle = path.join(directory, "Swarm 3.0.app");
 		await mkdir(path.join(bundle, "Contents"), { recursive: true });
 		await writeFile(path.join(bundle, "Contents", "Info.plist"), `<?xml version="1.0"?>
 <plist><dict>
@@ -59,7 +59,7 @@ describe("stageStaleAppCopy", () => {
 	async function makeBundle(): Promise<{ directory: string; bundle: string; copy: StaleAppCopy }> {
 		const directory = await mkdtemp(path.join(os.tmpdir(), "ao-stage-"));
 		temporaryDirectories.push(directory);
-		const bundle = path.join(directory, "Agent Orchestrator.app");
+		const bundle = path.join(directory, "Swarm 3.0.app");
 		await mkdir(bundle, { recursive: true });
 		const stats = await lstat(bundle);
 		return { directory, bundle, copy: { path: bundle, version: "0.10.3", device: stats.dev, inode: stats.ino } };

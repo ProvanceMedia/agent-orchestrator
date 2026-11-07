@@ -98,7 +98,7 @@ export class Bridge {
 			const reason = this.chrome.runtime.lastError?.message;
 			if (reason && !this.lastError) {
 				this.lastError = /not found|specified native messaging host/i.test(reason)
-					? { code: "HOST_NOT_INSTALLED", message: "AO is not set up for Chrome. Run `ao browser chrome setup`." }
+					? { code: "HOST_NOT_INSTALLED", message: "Swarm is not set up for Chrome. Run `ao browser chrome setup`." }
 					: { code: "HOST_DISCONNECTED", message: reason };
 			}
 			this.port = undefined;
@@ -218,15 +218,15 @@ export class Bridge {
 
 	private async updateBadge(): Promise<void> {
 		const busy = this.inFlight.size > 0;
-		const text = busy ? "AO" : this.ready ? "" : "!";
+		const text = busy ? "SW" : this.ready ? "" : "!";
 		await this.chrome.action.setBadgeText({ text }).catch(() => undefined);
 		await this.chrome.action.setBadgeBackgroundColor({ color: busy ? "#f97316" : "#6b7280" }).catch(() => undefined);
 		const sessions = [...new Set([...this.inFlight.values()].map((entry) => entry.sessionId))];
 		const title = busy
-			? `AO agent working: ${sessions.join(", ")}`
+			? `Swarm agent working: ${sessions.join(", ")}`
 			: this.ready
-				? "AO Browser Bridge: connected"
-				: "AO Browser Bridge: not connected to AO";
+				? "Swarm Browser Bridge: connected"
+				: "Swarm Browser Bridge: not connected to Swarm";
 		await this.chrome.action.setTitle({ title }).catch(() => undefined);
 	}
 }

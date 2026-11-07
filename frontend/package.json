@@ -1,6 +1,6 @@
 {
 	"name": "agent-orchestrator",
-	"productName": "Orchestrator",
+	"productName": "Swarm 3.0",
 	"version": "0.14.8",
 	"private": true,
 	"description": "Electron + TypeScript frontend for the agent-orchestrator rewrite",
