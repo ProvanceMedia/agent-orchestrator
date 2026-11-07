@@ -26,6 +26,11 @@ vi.mock("@sentry/electron/main", () => ({
 	getCurrentScope: () => ({ clear: sdk.clearCurrent }),
 	getIsolationScope: () => ({ clear: sdk.clearIsolation }),
 }));
+// The Swarm 3.0 fork ships no built-in Sentry project, so these tests supply one.
+vi.mock("../shared/sentry-config", async (importOriginal) => ({
+	...(await importOriginal<typeof import("../shared/sentry-config")>()),
+	DEFAULT_ELECTRON_SENTRY_DSN: "https://public@sentry.example/1",
+}));
 vi.mock("../shared/telemetry", () => ({ loadOrCreateTelemetryInstallId: vi.fn().mockResolvedValue("ins_test") }));
 
 beforeEach(() => { vi.spyOn(Math, "random").mockReturnValue(0); });
