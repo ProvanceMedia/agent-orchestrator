@@ -2119,7 +2119,7 @@
 	"timeline.ci_failed": "CI 失敗",
 	"timeline.commented": "コメント済み",
 	"timeline.no_signal": "シグナルなし",
-	"titlebar.about": "Orchestrator.inc について",
+	"titlebar.about": "Swarm 3.0 について",
 	"titlebar.copy": "コピー",
 	"titlebar.devtools": "DevTools を切り替え",
 	"titlebar.fullscreen": "フルスクリーンを切り替え",

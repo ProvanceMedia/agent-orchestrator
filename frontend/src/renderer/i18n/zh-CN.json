@@ -2178,7 +2178,7 @@
 	"timeline.ci_failed": "CI 失败",
 	"timeline.commented": "已评论",
 	"timeline.no_signal": "无信号",
-	"titlebar.about": "关于 Orchestrator.inc",
+	"titlebar.about": "关于 Swarm 3.0",
 	"titlebar.copy": "复制",
 	"titlebar.devtools": "切换开发者工具",
 	"titlebar.fullscreen": "切换全屏",

@@ -2119,7 +2119,7 @@
 	"timeline.ci_failed": "CI 실패",
 	"timeline.commented": "댓글 남김",
 	"timeline.no_signal": "신호 없음",
-	"titlebar.about": "Orchestrator.inc 정보",
+	"titlebar.about": "Swarm 3.0 정보",
 	"titlebar.copy": "복사",
 	"titlebar.devtools": "DevTools 전환",
 	"titlebar.fullscreen": "전체 화면 전환",

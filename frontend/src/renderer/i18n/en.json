@@ -2529,7 +2529,7 @@
 	"timeline.ci_failed": "CI Failed",
 	"timeline.commented": "Commented",
 	"timeline.no_signal": "No Signal",
-	"titlebar.about": "About Orchestrator.inc",
+	"titlebar.about": "About Swarm 3.0",
 	"titlebar.copy": "Copy",
 	"titlebar.devtools": "Toggle DevTools",
 	"titlebar.fullscreen": "Toggle Full Screen",

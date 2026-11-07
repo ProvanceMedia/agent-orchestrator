@@ -2150,7 +2150,7 @@
 	"timeline.ci_failed": "CI falhou",
 	"timeline.commented": "Comentado",
 	"timeline.no_signal": "Sem sinal",
-	"titlebar.about": "Sobre o Orchestrator.inc",
+	"titlebar.about": "Sobre o Swarm 3.0",
 	"titlebar.copy": "Copiar",
 	"titlebar.devtools": "Alternar DevTools",
 	"titlebar.fullscreen": "Alternar tela cheia",
