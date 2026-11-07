@@ -40,7 +40,7 @@ describe("agent-browser command policy", () => {
 	});
 });
 
-describe("AO action translation", () => {
+describe("Swarm action translation", () => {
 	it("maps the public snapshot and ref contract to native arguments", () => {
 		expect(nativeArgumentsForAction("snapshot", { interactive: true })).toEqual([
 			"snapshot",
@@ -154,7 +154,7 @@ describe("agent-browser runtime lifecycle", () => {
 		try {
 			await expect(runtime.runAction("session-1", "tab-select", { tabId: "t3" }, provider)).rejects.toMatchObject({
 				code: "AGENT_BROWSER_COMMAND_FAILED",
-				message: "Browser automation did not target AO tab t3",
+				message: "Browser automation did not target Swarm tab t3",
 			});
 			expect(processRunner.mock.calls.some(([, args]) => JSON.stringify(args) === JSON.stringify(["tab", "t2", "--json"]))).toBe(true);
 		} finally {

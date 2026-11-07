@@ -105,7 +105,7 @@ func SessionPreamble(cfg acpdriver.LaunchConfig) []acpsdk.ContentBlock {
 		return nil
 	}
 	return []acpsdk.ContentBlock{acpsdk.TextBlock(
-		"Standing instructions from Agent Orchestrator. Follow them for this whole session:\n" +
+		"Standing instructions from Swarm. Follow them for this whole session:\n" +
 			"<ao_standing_instructions>\n" + standing + "\n</ao_standing_instructions>",
 	)}
 }

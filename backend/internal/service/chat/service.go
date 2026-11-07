@@ -2406,7 +2406,7 @@ func withHandoffNote(systemPrompt, note string) string {
 	if note == "" {
 		return systemPrompt
 	}
-	return strings.TrimSpace(strings.TrimSpace(systemPrompt) + "\n\nAO provider handoff context:\n\n" + note)
+	return strings.TrimSpace(strings.TrimSpace(systemPrompt) + "\n\nSwarm provider handoff context:\n\n" + note)
 }
 
 // branchUnanswered reports a branch whose agent never had a turn, so its
@@ -3083,7 +3083,7 @@ func copilotConfigOptionAllowed(configID string, value ports.ChatConfigOptionVal
 		return fmt.Errorf("%w: Copilot's allow_all follows the session's approval mode", ports.ErrChatConfigOptionInvalid)
 	}
 	if configID == "mode" && isCopilotAutopilot(value.Select) {
-		return fmt.Errorf("%w: Copilot Autopilot bypasses AO approvals; choose bypass permissions instead", ports.ErrChatConfigOptionInvalid)
+		return fmt.Errorf("%w: Copilot Autopilot bypasses Swarm approvals; choose bypass permissions instead", ports.ErrChatConfigOptionInvalid)
 	}
 	return nil
 }

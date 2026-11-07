@@ -34,7 +34,7 @@ func versionProbe(ctx context.Context, bin string) error {
 	}
 	installed, ok := parseCursorVersion(string(output))
 	if !ok {
-		return fmt.Errorf("unrecognized Cursor Agent version %q (AO requires %s or newer)",
+		return fmt.Errorf("unrecognized Cursor Agent version %q (Swarm requires %s or newer)",
 			strings.TrimSpace(string(output)), minimumCursorVersion)
 	}
 	return requireMinimumCursorVersion(installed)
@@ -45,7 +45,7 @@ func requireMinimumCursorVersion(installed cursorVersion) error {
 	if !installed.less(minimum) {
 		return nil
 	}
-	return fmt.Errorf("cursor-agent %s is older than AO's tested minimum %s",
+	return fmt.Errorf("cursor-agent %s is older than Swarm's tested minimum %s",
 		installed, minimumCursorVersion)
 }
 

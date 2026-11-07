@@ -27,7 +27,7 @@ import (
 // reported user agent, which makes a stray process attributable.
 const (
 	clientName    = "agent-orchestrator"
-	clientTitle   = "Agent Orchestrator"
+	clientTitle   = "Swarm"
 	clientVersion = "0.1.0"
 	// This is the oldest Codex build whose complete Chat surface AO exercised:
 	// thread start/resume, turn start/interrupt, approvals, and every advertised
@@ -184,12 +184,12 @@ func (d *Driver) Probe(ctx context.Context) (ports.ChatCapabilities, error) {
 	}
 	installed, ok := parseCodexVersion(versionOutput)
 	if !ok {
-		return nil, fmt.Errorf("%w: unrecognized Codex version %q (AO requires %s or newer)",
+		return nil, fmt.Errorf("%w: unrecognized Codex version %q (Swarm requires %s or newer)",
 			ports.ErrChatDriverIncompatible, strings.TrimSpace(versionOutput), minimumCodexVersion)
 	}
 	minimum, _ := parseCodexVersion(minimumCodexVersion)
 	if installed.less(minimum) {
-		return nil, fmt.Errorf("%w: Codex %s is older than AO's tested minimum %s",
+		return nil, fmt.Errorf("%w: Codex %s is older than Swarm's tested minimum %s",
 			ports.ErrChatDriverIncompatible, installed, minimumCodexVersion)
 	}
 

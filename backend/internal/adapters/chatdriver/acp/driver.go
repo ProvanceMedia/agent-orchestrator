@@ -905,7 +905,7 @@ func (d *Driver) initialize(
 		ProtocolVersion: acpsdk.ProtocolVersionNumber,
 		ClientInfo: &acpsdk.Implementation{
 			Name:    "agent-orchestrator",
-			Title:   pointer("Agent Orchestrator"),
+			Title:   pointer("Swarm"),
 			Version: "0.1.0",
 		},
 		ClientCapabilities: acpsdk.ClientCapabilities{

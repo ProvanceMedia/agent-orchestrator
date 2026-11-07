@@ -2443,7 +2443,7 @@ describe("ensureNativeActiveTab automation-runtime resync", () => {
 
 		await expect(invoke("browser:selectTab", { viewId, tabId: "t1" })).rejects.toMatchObject({
 			code: "BROWSER_TARGET_MISMATCH",
-			message: "Browser automation could not target AO tab t1",
+			message: "Browser automation could not target Swarm tab t1",
 		});
 		await expect(host.execute("sess-1", "click", { ref: "e1" })).rejects.toMatchObject({
 			code: "BROWSER_TARGET_MISMATCH",
@@ -4454,7 +4454,7 @@ describe("agent browser runtime", () => {
 			expect(agent.executeJavaScript).toHaveBeenCalledWith("window.__rbHost && window.__rbHost.show(false)");
 		});
 
-		it("believes reports only from AO's agent-browser viewer", async () => {
+		it("believes reports only from Swarm's agent-browser viewer", async () => {
 			const { invoke, views } = setupTabHost();
 			const { viewId } = (await invoke("browser:ensure", "sess-1")) as { viewId: string };
 			await invoke("browser:navigate", { viewId, url: "https://evil.example/v/cdp" });

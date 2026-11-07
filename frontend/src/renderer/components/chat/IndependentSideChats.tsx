@@ -107,12 +107,12 @@ export function SideComposer({
 	const [trigger, setTrigger] = useState<ComposerTrigger>();
 	const commands = useMemo(
 		() => [
-			...(onFocusSide ? ["btw"].map((name) => ({ name, displayName: name, description: "Opens a side chat", source: "AO" })) : []),
+			...(onFocusSide ? ["btw"].map((name) => ({ name, displayName: name, description: "Opens a side chat", source: "Swarm" })) : []),
 			{
 				name: "compact",
 				displayName: "compact",
 				description: "Compacts this side chat",
-				source: "AO",
+				source: "Swarm",
 			},
 			...skills.filter((skill) => skill.name !== "compact" && (!onFocusSide || skill.name !== "btw")),
 		],
@@ -613,7 +613,7 @@ export function useIndependentSideChats(
 	const create = useCallback(
 		async (excerpt?: ChatDraftExcerptReference, forceNew = false, idempotencyKey: string = crypto.randomUUID(),
 			options?: { isCurrent?: () => boolean; shouldActivate: () => boolean }) => {
-			if (!enabled) throw new Error("Side chats are currently available only for local AO sessions.");
+			if (!enabled) throw new Error("Side chats are currently available only for local Swarm sessions.");
 			if (!canCreate) throw new Error("The current provider does not support resumable side chats.");
 			const owned = () => creationScope.active && creationScopeRef.current === creationScope && sessionRef.current === sessionId;
 			const current = () => owned() && (options?.isCurrent?.() ?? true);

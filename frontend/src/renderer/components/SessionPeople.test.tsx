@@ -131,7 +131,7 @@ describe("SessionPeopleControl", () => {
 		await waitFor(() => expect(writeText).toHaveBeenCalledWith(url));
 		const toast = useUiStore.getState().globalToasts.at(-1);
 		expect(toast?.title).toBe("Link copied");
-		expect(toast?.body).toContain("Anyone signed in to Orchestrator.inc with the link can watch this session");
+		expect(toast?.body).toContain("Anyone signed in to Swarm with the link can watch this session");
 		expect(toast?.action?.label).toBe("Manage");
 	});
 

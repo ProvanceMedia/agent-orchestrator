@@ -2249,7 +2249,7 @@ describe("ChatWorkspace timeline", () => {
 		);
 
 		expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-		expect(screen.getByText("AO restarted. History is kept.")).toBeInTheDocument();
+		expect(screen.getByText("Swarm restarted. History is kept.")).toBeInTheDocument();
 		// The banner title and the composer placeholder both say so.
 		expect(screen.getAllByText("Reconnecting to the agent…")).toHaveLength(2);
 		expect(screen.queryByRole("button", { name: "Resume agent" })).not.toBeInTheDocument();
@@ -3692,7 +3692,7 @@ Requested visual changes:
 Reference screenshots:
 - .ao/attachments/browser.png
 
-Task: Address the feedback below according to its wording. Visual adjustments are already previewed in AO's shared browser and describe the intended result.
+Task: Address the feedback below according to its wording. Visual adjustments are already previewed in Swarm's shared browser and describe the intended result.
 </browser_annotations>`,
 		};
 

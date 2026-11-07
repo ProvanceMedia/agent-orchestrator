@@ -80,9 +80,9 @@ func bodyForIntent(intent Intent) string {
 		}
 		return "Closed without merging. Reopen it if this wasn't intended."
 	case domain.NotificationReviewCompleted:
-		return "Orchestrator finished reviewing this pull request and approved it."
+		return "Swarm finished reviewing this pull request and approved it."
 	case domain.NotificationReviewChangesRequested:
-		return "Orchestrator finished reviewing this pull request and found changes to address."
+		return "Swarm finished reviewing this pull request and found changes to address."
 	default:
 		return ""
 	}

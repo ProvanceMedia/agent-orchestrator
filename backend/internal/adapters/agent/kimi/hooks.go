@@ -121,7 +121,7 @@ func kimiInstructionsPath(workspacePath string) string {
 func installKimiConfigHooks(cfg ports.WorkspaceHookConfig) error {
 	home, ok := kimiCodeHomeFromEnv(cfg.Env)
 	if !ok {
-		return errors.New("kimi: AO-managed Kimi Code home is unavailable")
+		return errors.New("kimi: Swarm-managed Kimi Code home is unavailable")
 	}
 	if err := seedKimiCredentials(home); err != nil {
 		return err
@@ -199,13 +199,13 @@ func shareKimiCredentialStore(sourceHome, targetHome string) (bool, error) {
 		return true, nil
 	}
 	if err := os.MkdirAll(targetHome, 0o700); err != nil {
-		return false, fmt.Errorf("create AO Kimi home: %w", err)
+		return false, fmt.Errorf("create Swarm Kimi home: %w", err)
 	}
 	// AO's folder only held seeded copies; it is restored if the link fails.
 	aside := target + ".seeded"
 	_ = os.RemoveAll(aside)
 	if err := os.Rename(target, aside); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return false, fmt.Errorf("set aside AO's Kimi credentials: %w", err)
+		return false, fmt.Errorf("set aside Swarm's Kimi credentials: %w", err)
 	}
 	if err := os.Symlink(source, target); err != nil {
 		_ = os.Rename(aside, target)
@@ -431,7 +431,7 @@ func kimiSystemPromptText(inline, file string) (string, error) {
 
 func kimiInstructionFile(systemPrompt string) string {
 	return kimiInstructionsSentinel + "\n\n" +
-		"# Agent Orchestrator Session Instructions\n\n" +
+		"# Swarm Session Instructions\n\n" +
 		strings.TrimRight(systemPrompt, "\n") + "\n\n" +
 		kimiInstructionsEnd + "\n"
 }

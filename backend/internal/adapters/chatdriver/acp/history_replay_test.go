@@ -34,7 +34,7 @@ func textBlock(text string) acpsdk.ContentBlock {
 }
 
 func TestSetSessionPreambleDoesNotDuplicatePersistedText(t *testing.T) {
-	const preamble = "Standing instructions from Agent Orchestrator:\n<ao_standing_instructions>rules</ao_standing_instructions>"
+	const preamble = "Standing instructions from Swarm:\n<ao_standing_instructions>rules</ao_standing_instructions>"
 	conv := replayConversation()
 	conv.historyEvents = []ports.ChatEvent{{Kind: ports.ChatEventUserMessageCompleted, Text: preamble}}
 	conv.setSessionPreamble([]acpsdk.ContentBlock{textBlock(preamble)})
@@ -74,7 +74,7 @@ func TestSetSessionPreambleDoesNotDuplicatePersistedText(t *testing.T) {
 // A live reconnect replays no history, so AO's durable turn record decides
 // whether the standing instructions were already delivered.
 func TestSetSessionPreambleDisarmsForDurableTurns(t *testing.T) {
-	const preamble = "Standing instructions from Agent Orchestrator:\n<ao_standing_instructions>rules</ao_standing_instructions>"
+	const preamble = "Standing instructions from Swarm:\n<ao_standing_instructions>rules</ao_standing_instructions>"
 
 	reconnected := replayConversation()
 	reconnected.hasDurableTurns = true

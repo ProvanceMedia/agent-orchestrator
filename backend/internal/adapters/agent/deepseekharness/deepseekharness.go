@@ -221,7 +221,7 @@ func headlessTask(prompt, standing string) (string, error) {
 	if strings.TrimSpace(standing) == "" {
 		return prompt, nil
 	}
-	return "Standing instructions from Agent Orchestrator. Follow them for this whole session:\n<ao_standing_instructions>\n" +
+	return "Standing instructions from Swarm. Follow them for this whole session:\n<ao_standing_instructions>\n" +
 		strings.TrimSpace(standing) + "\n</ao_standing_instructions>\n\nTask:\n" + prompt, nil
 }
 

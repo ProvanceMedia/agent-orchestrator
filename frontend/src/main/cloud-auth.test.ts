@@ -350,7 +350,7 @@ describe("native WorkOS authentication", () => {
     });
   });
 
-  it("requires an AO Cloud session before starting provider login", async () => {
+  it("requires an Swarm Cloud session before starting provider login", async () => {
     const handler = mocks.ipcHandle.mock.calls.find(
       ([channel]) => channel === "cloud:connectProviderAuth",
     )?.[1] as ((event: unknown, input: unknown) => Promise<void>) | undefined;
@@ -360,7 +360,7 @@ describe("native WorkOS authentication", () => {
         baseUrl: "https://cloud.example",
         provider: "codex",
       }),
-    ).rejects.toThrow("Sign in to AO Cloud before connecting a provider.");
+    ).rejects.toThrow("Sign in to Swarm Cloud before connecting a provider.");
   });
 
   describe("Claude browser login local fallback token", () => {
@@ -390,7 +390,7 @@ describe("native WorkOS authentication", () => {
 
     it("does not leave a local token behind when the cloud save fails", async () => {
       vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}", { status: 500 }));
-      await expect(connect()).rejects.toThrow("AO Cloud could not save the provider credential.");
+      await expect(connect()).rejects.toThrow("Swarm Cloud could not save the provider credential.");
       await expect(readFile(tokenFile(), "utf8")).rejects.toMatchObject({ code: "ENOENT" });
     });
 
@@ -455,8 +455,8 @@ describe("native WorkOS authentication", () => {
 
     expect(mocks.showMessageBox).toHaveBeenCalledWith({
       type: "error",
-      title: "AO Cloud sign-in failed",
-      message: "Unable to sign in to AO Cloud",
+      title: "Swarm Cloud sign-in failed",
+      message: "Unable to sign in to Swarm Cloud",
       detail:
         "The WorkOS sign-in request expired. Start sign-in again to continue.",
     });

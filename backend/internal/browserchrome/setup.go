@@ -249,7 +249,7 @@ func (i Installer) ownsManifest(path string) bool {
 func (i Installer) manifestJSON() ([]byte, error) {
 	data, err := json.MarshalIndent(hostManifest{
 		Name:           HostName,
-		Description:    "Agent Orchestrator browser bridge",
+		Description:    "Swarm browser bridge",
 		Path:           i.HostPath(),
 		Type:           "stdio",
 		AllowedOrigins: []string{AllowedOrigin()},
@@ -286,7 +286,7 @@ func (i Installer) wrapperScript() string {
 	if runtime.GOOS == "windows" {
 		return "@echo off\r\n\"" + i.Executable + "\" browser-host --endpoint \"" + i.Paths.Endpoint() + "\" %*\r\n"
 	}
-	return "#!/bin/sh\n# Agent Orchestrator: Chrome native messaging host for the AO Browser Bridge.\nexec " +
+	return "#!/bin/sh\n# Swarm: Chrome native messaging host for the Swarm Browser Bridge.\nexec " +
 		quoteShell(i.Executable) + " browser-host --endpoint " + quoteShell(i.Paths.Endpoint()) + " \"$@\"\n"
 }
 

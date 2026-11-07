@@ -12,7 +12,7 @@ export type RemoteHealth = "online" | "unauthorized" | "offline" | "not-a-daemon
 
 export class IncompatibleRemoteVersionError extends Error {
 	constructor() {
-		super("AO versions are incompatible. Update AO on this computer and the remote host.");
+		super("Swarm versions are incompatible. Update Swarm on this computer and the remote host.");
 		this.name = "IncompatibleRemoteVersionError";
 	}
 }

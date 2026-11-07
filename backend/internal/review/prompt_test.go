@@ -20,7 +20,7 @@ func TestReviewTextsIncludesMultiPRQueue(t *testing.T) {
 
 	prompt, _ := reviewTexts(spec)
 	for _, want := range []string{
-		"AO created 2 review tasks",
+		"Swarm created 2 review tasks",
 		"Review every queued PR, then submit all results together",
 		"Complete every review task in the queue autonomously",
 		"Do not ask the user whether to continue to the next PR",
@@ -43,7 +43,7 @@ func TestReviewTextsIncludesMultiPRQueue(t *testing.T) {
 // inline, and optional suggestions must not be.
 func TestReviewPromptRequiresInlineCommentsForRequiredChanges(t *testing.T) {
 	prompt, system := reviewTexts(LaunchSpec{WorkerID: "mer-1", PRURL: "https://github.com/o/r/pull/1", TargetSHA: "sha1", RunID: "run-1"})
-	if !strings.Contains(prompt, "implementation pull request(s) owned by worker session mer-1") || !strings.Contains(system, "implementation PRs owned by an AO worker") {
+	if !strings.Contains(prompt, "implementation pull request(s) owned by worker session mer-1") || !strings.Contains(system, "implementation PRs owned by a Swarm worker") {
 		t.Fatalf("native review prompts must identify their owned implementation scope:\n%s\n%s", prompt, system)
 	}
 	for _, want := range []string{

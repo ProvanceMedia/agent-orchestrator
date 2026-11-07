@@ -120,15 +120,15 @@ describe("cloud attachment errors and cancellation", () => {
 
 	it("reads an IPC failure as a person would", async () => {
 		requestBinary.mockRejectedValueOnce(new Error("Error invoking remote method 'cloudCp:requestBinary': TypeError: fetch failed"));
-		await expect(fetchCloudAttachment("https://cp", "org", "session", { id: "a1", contentType: "text/plain" })).rejects.toThrow("Couldn’t reach AO Cloud. Check the connection and try again.");
-		requestBinary.mockRejectedValueOnce(new Error("Error invoking remote method 'cloudCp:requestBinary': Error: Invalid cloud control-plane request: baseUrl is not the configured AO Cloud control plane."));
+		await expect(fetchCloudAttachment("https://cp", "org", "session", { id: "a1", contentType: "text/plain" })).rejects.toThrow("Couldn’t reach Swarm Cloud. Check the connection and try again.");
+		requestBinary.mockRejectedValueOnce(new Error("Error invoking remote method 'cloudCp:requestBinary': Error: Invalid cloud control-plane request: baseUrl is not the configured Swarm Cloud control plane."));
 		await expect(fetchCloudAttachment("https://cp", "org", "session", { id: "a1", contentType: "text/plain" })).rejects.toThrow(/^Invalid cloud control-plane request: baseUrl is not the configured/);
 	});
 
 	it("shows main's own answers: over its 32 MiB, or out of time", async () => {
-		requestBinary.mockResolvedValueOnce({ status: 413, headers: {}, body: encode({ code: "attachment_too_large", message: "The file is larger than 32 MiB, the most the app sends to AO Cloud at once." }) });
+		requestBinary.mockResolvedValueOnce({ status: 413, headers: {}, body: encode({ code: "attachment_too_large", message: "The file is larger than 32 MiB, the most the app sends to Swarm Cloud at once." }) });
 		await expect(uploadCloudAttachment("https://cp", "org", "session", { name: "big.bin", bytes: new Uint8Array(1) })).rejects.toThrow("larger than 32 MiB");
-		requestBinary.mockResolvedValueOnce({ status: 504, headers: {}, body: encode({ code: "request_timeout", message: "AO Cloud did not answer within 120 seconds. Try again." }) });
+		requestBinary.mockResolvedValueOnce({ status: 504, headers: {}, body: encode({ code: "request_timeout", message: "Swarm Cloud did not answer within 120 seconds. Try again." }) });
 		await expect(placeCloudAttachment("https://cp", "org", "session", "a1")).rejects.toThrow("did not answer within 120 seconds");
 	});
 });

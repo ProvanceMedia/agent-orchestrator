@@ -325,7 +325,7 @@ test("does not tell LAN users to join the same Wi-Fi", async () => {
 	await waitFor(() => expect(qrPayload()).not.toBeNull());
 
 	expect(screen.queryByText(/same Wi-Fi/i)).not.toBeInTheDocument();
-	expect(screen.getByText("Scan with the Orchestrator mobile app")).toBeInTheDocument();
+	expect(screen.getByText("Scan with the mobile app")).toBeInTheDocument();
 });
 
 // Both stores are listed in step one now. The platform dropdown that used to
@@ -333,8 +333,8 @@ test("does not tell LAN users to join the same Wi-Fi", async () => {
 test("offers both store links without a platform choice", async () => {
 	renderMobileSettings();
 
-	expect(await screen.findByRole("button", { name: "Open Orchestrator on the App Store" })).toBeInTheDocument();
-	expect(screen.getByRole("button", { name: "Open Orchestrator on Google Play" })).toBeInTheDocument();
+	expect(await screen.findByRole("button", { name: "Open the mobile app on the App Store" })).toBeInTheDocument();
+	expect(screen.getByRole("button", { name: "Open the mobile app on Google Play" })).toBeInTheDocument();
 	expect(screen.queryByRole("button", { name: "Get the app" })).not.toBeInTheDocument();
 });
 
@@ -343,8 +343,8 @@ test("offers both store links without a platform choice", async () => {
 test("shows the store links as one segmented control beside Get the app", async () => {
 	renderMobileSettings();
 
-	const ios = await screen.findByRole("button", { name: "Open Orchestrator on the App Store" });
-	const android = screen.getByRole("button", { name: "Open Orchestrator on Google Play" });
+	const ios = await screen.findByRole("button", { name: "Open the mobile app on the App Store" });
+	const android = screen.getByRole("button", { name: "Open the mobile app on Google Play" });
 	expect(ios.parentElement).toBe(android.parentElement);
 	expect(ios.parentElement).toHaveClass("bg-(--color-bg-settings-input)");
 	expect(ios.parentElement?.parentElement).toHaveTextContent("Get the app");
@@ -352,14 +352,14 @@ test("shows the store links as one segmented control beside Get the app", async 
 
 test("shows a square Google Play QR tooltip for Android", async () => {
 	renderMobileSettings();
-	await userEvent.hover(await screen.findByRole("button", { name: "Open Orchestrator on Google Play" }));
+	await userEvent.hover(await screen.findByRole("button", { name: "Open the mobile app on Google Play" }));
 
 	expect(await screen.findByTestId("android-play-qr")).toHaveClass("p-2");
 });
 
 test("shows a QR-only App Store tooltip", async () => {
 	renderMobileSettings();
-	await userEvent.hover(await screen.findByRole("button", { name: "Open Orchestrator on the App Store" }));
+	await userEvent.hover(await screen.findByRole("button", { name: "Open the mobile app on the App Store" }));
 
 	const tooltip = await screen.findByTestId("ios-store-qr");
 	expect(tooltip).not.toHaveTextContent("App Store");
@@ -1100,7 +1100,7 @@ test.each([false, true])("shows helper upgrade recovery with lid preference %s",
 	const toggle = await screen.findByRole("switch", { name: "Keep this Mac awake" });
 	expect(toggle).toHaveAttribute("aria-checked", String(lidClosed));
 	expect(screen.getByText(/launchctl bootout gui\/\$\(id -u\)\/com\.aoagents\.mobile-wake/)).toHaveTextContent(
-		"turn closed-lid wake off in every AO instance and wait for recovery to finish",
+		"turn closed-lid wake off in every Swarm instance and wait for recovery to finish",
 	);
 	expect(screen.queryByText("Closed-lid keep awake is armed.")).not.toBeInTheDocument();
 });

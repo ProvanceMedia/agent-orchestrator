@@ -641,8 +641,8 @@ function startLoopbackCallbackServer(dataDir: string): void {
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(
           CALLBACK_HTML(
-            "Signed in to AO Cloud",
-            "You can close this tab and return to Orchestrator.",
+            "Signed in to Swarm Cloud",
+            "You can close this tab and return to Swarm.",
           ),
         );
       } catch (callbackError) {
@@ -651,7 +651,7 @@ function startLoopbackCallbackServer(dataDir: string): void {
         res.end(
           CALLBACK_HTML(
             "Sign-in failed",
-            "Return to Orchestrator and try signing in again.",
+            "Return to Swarm and try signing in again.",
           ),
         );
       } finally {
@@ -690,16 +690,16 @@ function signInFailureDetail(error: unknown): string {
     return "The WorkOS response could not be verified. Start sign-in again to continue.";
   }
   if (message.includes("network") || message.includes("fetch")) {
-    return "Orchestrator could not reach WorkOS. Check your connection and try again.";
+    return "Swarm could not reach WorkOS. Check your connection and try again.";
   }
-  return "Orchestrator could not complete WorkOS sign-in. Please try again.";
+  return "Swarm could not complete WorkOS sign-in. Please try again.";
 }
 
 export async function showCloudSignInFailure(error: unknown): Promise<void> {
   await dialog.showMessageBox({
     type: "error",
-    title: "AO Cloud sign-in failed",
-    message: "Unable to sign in to AO Cloud",
+    title: "Swarm Cloud sign-in failed",
+    message: "Unable to sign in to Swarm Cloud",
     detail: signInFailureDetail(error),
   });
 }
@@ -757,7 +757,7 @@ export function installCloudIPC(
         title: "WorkOS not configured",
         message: "WorkOS sign-in is not configured.",
         detail:
-          "Set VITE_WORKOS_CLIENT_ID and restart Orchestrator to enable sign-in.",
+          "Set VITE_WORKOS_CLIENT_ID and restart Swarm to enable sign-in.",
       });
       return;
     }
@@ -798,7 +798,7 @@ export function installCloudIPC(
     if (base.username !== "" || base.password !== "" || base.search !== "" || base.hash !== "") throw new Error("Cloud control plane URL must not include credentials, a query string, or a fragment.");
     const dataDir = getDataDir();
     const token = await getCloudAccessToken(dataDir);
-    if (!token) throw new Error("Sign in to AO Cloud before connecting a provider.");
+    if (!token) throw new Error("Sign in to Swarm Cloud before connecting a provider.");
     
     if (activeProviderAuthAbort) activeProviderAuthAbort.abort();
     activeProviderAuthAbort = new AbortController();
@@ -834,7 +834,7 @@ export function installCloudIPC(
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({ credentialType: credential.credentialType, secret: credential.secret }),
     });
-    if (!response.ok) throw new Error("AO Cloud could not save the provider credential.");
+    if (!response.ok) throw new Error("Swarm Cloud could not save the provider credential.");
 
     // Persist the captured Claude setup-token locally as a fallback for local
     // sessions, only once the cloud copy is saved: a failed cloud save must not

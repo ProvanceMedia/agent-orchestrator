@@ -290,7 +290,7 @@ func TestRegisterLinuxProtocolHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 	content := string(entry)
-	if !strings.Contains(content, "\nName=Orchestrator\n") {
+	if !strings.Contains(content, "\nName=Swarm 3.0\n") {
 		t.Fatalf("desktop entry does not use the visible app name:\n%s", content)
 	}
 	if !strings.Contains(content, "\nNoDisplay=true\n") {
@@ -453,7 +453,7 @@ func TestDownload_NonTTYProgress(t *testing.T) {
 		t.Fatalf("non-TTY progress must not emit carriage returns, got %q", out)
 	}
 	// Start line: asset name, size, and repo are all present.
-	if !strings.Contains(out, "Downloading Agent Orchestrator (agent-orchestrator.zip, ") {
+	if !strings.Contains(out, "Downloading Swarm (agent-orchestrator.zip, ") {
 		t.Fatalf("missing start line in %q", out)
 	}
 	if !strings.Contains(out, "from owner/repo...") {
@@ -492,7 +492,7 @@ func TestDownload_NoContentLengthOmitsSize(t *testing.T) {
 	if strings.Contains(out, "~") {
 		t.Fatalf("size segment should be omitted without Content-Length, got %q", out)
 	}
-	if !strings.Contains(out, "Downloading Agent Orchestrator (asset.bin) from") {
+	if !strings.Contains(out, "Downloading Swarm (asset.bin) from") {
 		t.Fatalf("unexpected start line in %q", out)
 	}
 	if !strings.Contains(out, "Downloaded ") {

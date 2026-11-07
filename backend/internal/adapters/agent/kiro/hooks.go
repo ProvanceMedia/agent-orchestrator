@@ -29,7 +29,7 @@ const (
 	kiroHookCommandPrefix = "ao hooks kiro "
 
 	kiroAgentName        = "ao"
-	kiroAgentDescription = "Agent Orchestrator session instructions"
+	kiroAgentDescription = "Swarm session instructions"
 )
 
 // kiroHookFile is the on-disk shape of .kiro/agents/ao.json. It is used by

@@ -268,8 +268,8 @@ func vibeManagerOwnedAgentRoot(dataDir, sessionID string) string {
 func vibeAgentTOML(mode ports.PermissionMode, model, promptText string, hasPrompt bool) (string, error) {
 	var b strings.Builder
 	b.WriteString(`agent_type = "agent"` + "\n")
-	b.WriteString(`display_name = "AO Session"` + "\n")
-	b.WriteString(`description = "AO session standing instructions."` + "\n")
+	b.WriteString(`display_name = "Swarm Session"` + "\n")
+	b.WriteString(`description = "Swarm session standing instructions."` + "\n")
 	b.WriteString(`safety = "neutral"` + "\n")
 	if hasPrompt {
 		instructions, err := vibeTOMLBasicString(promptText)

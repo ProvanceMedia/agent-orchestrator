@@ -162,12 +162,12 @@ describe("general access", () => {
 			sessionId: "s1", role: "viewer", accessScope: "anyone", interaction: "view", modeCap: "read-only", expiresInHours: 168,
 		}));
 		expect(remember).toHaveBeenCalledWith("https://cp.example.test", NEW_LINK, SHORT);
-		await waitFor(async () => expect(await sentence()).toBe("Anyone signed in to Orchestrator.inc with the link can watch this session: the chat, terminal and files."));
+		await waitFor(async () => expect(await sentence()).toBe("Anyone signed in to Swarm with the link can watch this session: the chat, terminal and files."));
 		await waitFor(() => expect(copyButton()).toHaveAttribute("data-share-copy-link", "ready"));
 		fireEvent.click(copyButton());
 		await waitFor(() => expect(writeText).toHaveBeenCalledWith(SHORT));
 		expect(await screen.findByRole("button", { name: "Link copied" })).toBeInTheDocument();
-		expect(document.querySelector("[data-share-announcement]")).toHaveTextContent("Link copied. Anyone signed in to Orchestrator.inc with the link can watch this session");
+		expect(document.querySelector("[data-share-announcement]")).toHaveTextContent("Link copied. Anyone signed in to Swarm with the link can watch this session");
 		// Copying never makes a second link.
 		expect(mocks.client.createShareLink).toHaveBeenCalledTimes(1);
 	});
@@ -203,7 +203,7 @@ describe("general access", () => {
 			],
 		});
 		renderDialog();
-		await waitFor(async () => expect(await sentence()).toBe("Anyone signed in to Orchestrator.inc with the link can write to the agent, which runs in your sandbox with your repository access and its secrets."));
+		await waitFor(async () => expect(await sentence()).toBe("Anyone signed in to Swarm with the link can write to the agent, which runs in your sandbox with your repository access and its secrets."));
 		const region = await card();
 		expect(region).toHaveTextContent("Never expires");
 		expect(region).toHaveTextContent("and 1 more link");
@@ -303,7 +303,7 @@ describe("general access", () => {
 		expect(await sentence()).toBe("Only people in Northwind and people added above can open this session. A link to the whole project opens it too.");
 		fireEvent.click(screen.getByRole("button", { name: "Share the whole project instead" }));
 		expect(await screen.findByRole("heading", { name: "Share project “acme/web”" })).toBeInTheDocument();
-		await waitFor(async () => expect(await sentence()).toBe("Anyone signed in to Orchestrator.inc with the link can watch every session in this project and start their own, which run in your sandbox with your repository access and its secrets."));
+		await waitFor(async () => expect(await sentence()).toBe("Anyone signed in to Swarm with the link can watch every session in this project and start their own, which run in your sandbox with your repository access and its secrets."));
 		await waitFor(() => expect(mocks.client.getShareAccess).toHaveBeenCalledWith(ORG, "project", undefined));
 	});
 
