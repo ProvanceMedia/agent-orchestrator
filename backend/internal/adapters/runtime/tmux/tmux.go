@@ -66,18 +66,21 @@ type Options struct {
 // Runtime runs agent sessions inside tmux sessions, driving them via the tmux
 // CLI. It implements ports.Runtime.
 type Runtime struct {
-	binary         string
-	legacyBinary   string
-	socketName     string
-	shell          string
-	timeout        time.Duration
-	chunkSize      int
-	enterDelay     time.Duration
-	reapGrace      time.Duration
-	runner         runner
-	reapSessions   func(ctx context.Context, pids []int, grace time.Duration)
-	socketMu       sync.RWMutex
-	sessionSockets map[string]string
+	binary       string
+	legacyBinary string
+	socketName   string
+	shell        string
+	timeout      time.Duration
+	chunkSize    int
+	enterDelay   time.Duration
+	reapGrace    time.Duration
+	runner       runner
+	reapSessions func(ctx context.Context, pids []int, grace time.Duration)
+	// legacySocketPresent reports whether tmux's legacy default socket exists.
+	// It is a field so tests can replace it.
+	legacySocketPresent func() bool
+	socketMu            sync.RWMutex
+	sessionSockets      map[string]string
 }
 
 var _ ports.Runtime = (*Runtime)(nil)
@@ -325,17 +328,18 @@ func New(opts Options) *Runtime {
 		}
 	}
 	return &Runtime{
-		binary:         binary,
-		legacyBinary:   legacyBinary,
-		socketName:     socketName,
-		shell:          shellPath,
-		timeout:        timeout,
-		chunkSize:      chunkSize,
-		enterDelay:     enterDelay,
-		reapGrace:      reapGrace,
-		runner:         execRunner{},
-		reapSessions:   killSessionsByPID,
-		sessionSockets: make(map[string]string),
+		legacySocketPresent: legacyDefaultSocketPresent,
+		binary:              binary,
+		legacyBinary:        legacyBinary,
+		socketName:          socketName,
+		shell:               shellPath,
+		timeout:             timeout,
+		chunkSize:           chunkSize,
+		enterDelay:          enterDelay,
+		reapGrace:           reapGrace,
+		runner:              execRunner{},
+		reapSessions:        killSessionsByPID,
+		sessionSockets:      make(map[string]string),
 	}
 }
 
@@ -1179,6 +1183,13 @@ func (r *Runtime) socketForSession(ctx context.Context, id string) (string, erro
 		return r.socketName, nil
 	}
 	if r.legacyBinary == "" {
+		// With no system tmux and no legacy default socket, no session can be
+		// on the legacy server, so the private socket decides (issue #6649).
+		// When the socket exists, a session may still be there, so stay
+		// inconclusive rather than guess.
+		if r.legacySocketPresent != nil && !r.legacySocketPresent() {
+			return r.socketName, nil
+		}
 		return "", fmt.Errorf(
 			"%w: cannot inspect legacy system-socket session %s because system tmux is unavailable",
 			ports.ErrRuntimeProbeInconclusive,
@@ -1749,3 +1760,17 @@ func (e commandError) Error() string {
 }
 
 func (e commandError) Unwrap() error { return e.err }
+
+// legacyDefaultSocketPresent reports whether the socket of tmux's machine-wide
+// default server exists. tmux puts it at $TMUX_TMPDIR/tmux-<uid>/default, or
+// under /tmp when TMUX_TMPDIR is not set. Any result other than "does not
+// exist" counts as present, so an unreadable path stays on the safe side.
+func legacyDefaultSocketPresent() bool {
+	dir := strings.TrimSpace(os.Getenv("TMUX_TMPDIR"))
+	if dir == "" {
+		dir = "/tmp"
+	}
+	path := filepath.Join(dir, fmt.Sprintf("tmux-%d", os.Getuid()), "default")
+	_, err := os.Stat(path)
+	return !errors.Is(err, os.ErrNotExist)
+}
