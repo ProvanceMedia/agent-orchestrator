@@ -134,3 +134,68 @@ func TestCreateShowsEachReportedArtifactAfterTheReportIsStored(t *testing.T) {
 		t.Fatalf("unknown session: err = %v, recorded %q", err, calls)
 	}
 }
+
+// fakeSessionStore also lists the project's sessions, as the SQLite store does.
+type fakeSessionStore struct {
+	fakeStore
+	sessions []domain.SessionRecord
+	listErr  error
+}
+
+func (f *fakeSessionStore) ListSessions(context.Context, domain.ProjectID) ([]domain.SessionRecord, error) {
+	return append([]domain.SessionRecord(nil), f.sessions...), f.listErr
+}
+
+func createDone(t *testing.T, st *fakeSessionStore, now time.Time) domain.ReportRecord {
+	t.Helper()
+	st.ok = true
+	st.session = domain.SessionRecord{ID: "ao-7", ProjectID: "ao", Kind: domain.KindWorker, Activity: domain.Activity{State: domain.ActivityActive}}
+	s := New(Deps{Store: st, Now: func() time.Time { return now }, NewID: func() string { return "rpt_1" }})
+	r, err := s.Create(context.Background(), CreateInput{SessionID: "ao-7", State: domain.ReportDone, Note: "finished"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return r
+}
+
+func worker(id domain.SessionID, state domain.ActivityState, terminated bool) domain.SessionRecord {
+	return domain.SessionRecord{ID: id, ProjectID: "ao", Kind: domain.KindWorker, Activity: domain.Activity{State: state}, IsTerminated: terminated}
+}
+
+func TestCreateDoneDeliversAtOnceWhenNoOtherWorkerIsBusy(t *testing.T) {
+	now := time.Date(2026, 11, 7, 23, 38, 1, 0, time.UTC)
+	st := &fakeSessionStore{sessions: []domain.SessionRecord{
+		worker("ao-7", domain.ActivityActive, false), // the reporter itself
+		{ID: "ao-1", ProjectID: "ao", Kind: domain.KindOrchestrator, Activity: domain.Activity{State: domain.ActivityActive}},
+		worker("ao-8", domain.ActivityIdle, false),
+		worker("ao-9", domain.ActivityWaitingInput, false),
+		worker("ao-10", domain.ActivityActive, true), // terminated
+	}}
+	r := createDone(t, st, now)
+	if !r.AvailableAt.Equal(now) || !r.SettlementDeadline.Equal(now) {
+		t.Fatalf("available=%v settles=%v, want both %v", r.AvailableAt, r.SettlementDeadline, now)
+	}
+}
+
+func TestCreateDoneKeepsSettlementWindowWhileAnotherWorkerIsBusy(t *testing.T) {
+	now := time.Date(2026, 11, 7, 23, 38, 1, 0, time.UTC)
+	st := &fakeSessionStore{sessions: []domain.SessionRecord{
+		worker("ao-7", domain.ActivityActive, false),
+		worker("ao-8", domain.ActivityActive, false),
+	}}
+	r := createDone(t, st, now)
+	want := now.Add(domain.ReportSettlementWindow)
+	if !r.AvailableAt.Equal(want) || !r.SettlementDeadline.Equal(want) {
+		t.Fatalf("available=%v settles=%v, want both %v", r.AvailableAt, r.SettlementDeadline, want)
+	}
+}
+
+func TestCreateDoneKeepsSettlementWindowWhenSessionsCannotBeRead(t *testing.T) {
+	now := time.Date(2026, 11, 7, 23, 38, 1, 0, time.UTC)
+	st := &fakeSessionStore{listErr: context.DeadlineExceeded}
+	r := createDone(t, st, now)
+	want := now.Add(domain.ReportSettlementWindow)
+	if !r.AvailableAt.Equal(want) || !r.SettlementDeadline.Equal(want) {
+		t.Fatalf("available=%v settles=%v, want both %v", r.AvailableAt, r.SettlementDeadline, want)
+	}
+}

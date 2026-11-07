@@ -129,7 +129,9 @@ together.
 `ao report` persists a worker-originated coordination claim before reporting
 success. Checkpoints, free-form messages, and output-only reports batch until
 another flush or the first report's one-hour fallback. The first `--done`
-report opens a fixed five-minute settlement window. `--needs-input` delivers
+report opens a five-minute settlement window, so other workers' results can
+join one delivery. When no other live worker in the project is active, the
+`--done` report delivers at once. `--needs-input` delivers
 immediately without interrupting current orchestrator work. `--stuck` requests
 an interrupt at most once per worker every three minutes and coalesces equal
 repeats. Reports route to the active project orchestrator at each attempt and

@@ -120,6 +120,11 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (domain.ReportR
 	switch input.State {
 	case domain.ReportDone:
 		settlementDeadline = now.Add(domain.ReportSettlementWindow)
+		// The window lets other workers' results join one delivery. When no
+		// other worker is busy, nothing can join, so deliver at once.
+		if s.noOtherWorkerBusy(ctx, session) {
+			settlementDeadline = now
+		}
 		availableAt = settlementDeadline
 	case domain.ReportNeedsInput, domain.ReportStuck:
 		availableAt = now
@@ -150,4 +155,29 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (domain.ReportR
 		}
 	}
 	return created, nil
+}
+
+// noOtherWorkerBusy reports whether no live worker in the reporter's project,
+// other than the reporter, is active. It returns false when the store cannot
+// list sessions, so the fixed settlement window stays the safe default.
+func (s *Service) noOtherWorkerBusy(ctx context.Context, reporter domain.SessionRecord) bool {
+	lister, ok := s.store.(interface {
+		ListSessions(context.Context, domain.ProjectID) ([]domain.SessionRecord, error)
+	})
+	if !ok {
+		return false
+	}
+	sessions, err := lister.ListSessions(ctx, reporter.ProjectID)
+	if err != nil {
+		return false
+	}
+	for _, other := range sessions {
+		if other.ID == reporter.ID || other.Kind != domain.KindWorker || other.IsTerminated {
+			continue
+		}
+		if other.Activity.State == domain.ActivityActive {
+			return false
+		}
+	}
+	return true
 }
