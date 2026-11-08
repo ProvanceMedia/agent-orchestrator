@@ -186,6 +186,14 @@ type Config struct {
 	// session (claude-agent-acp's task list), re-sent into later turns, rather
 	// than a plan for the turn it arrives in.
 	PlansSpanTurns bool
+	// AgentStartedTurns records output the agent produces with no prompt in
+	// flight, such as the cycle it runs after a background task finishes, as
+	// a turn of its own. Set it only for an agent that reports the end of such
+	// a cycle through a _claude/sdkMessage result or idle notification (see
+	// SessionMeta), because AO stays busy until that turn ends. A conversation
+	// that reattaches to a live provider does not use it: that provider's
+	// session may have been opened without the notifications.
+	AgentStartedTurns bool
 	// QuickStop marks a provider whose stop gains nothing from waiting (it never
 	// reacts to stdin closing): a short session/close wait, then a quick signal.
 	QuickStop bool
@@ -855,6 +863,7 @@ func (d *Driver) initialize(
 	conv.historyUserChunkIsMessage = d.cfg.HistoryUserChunkIsMessage
 	conv.historyReconciler = d.cfg.HistoryReconciler
 	conv.plansSpanTurns = d.cfg.PlansSpanTurns
+	conv.agentStartedTurns = d.cfg.AgentStartedTurns && !proc.reconnected
 	conv.requireAdvertised = d.cfg.RequireAdvertisedOptions
 	if d.cfg.ServedModel != nil {
 		servedModel := d.cfg.ServedModel

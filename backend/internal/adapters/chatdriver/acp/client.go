@@ -613,6 +613,8 @@ func (c *conversation) handleNotification(method string, params json.RawMessage)
 		}
 	case persistenthost.ACPPromptResultMethod, persistenthost.ACPInteractionCommandMethod:
 		_, err = c.HandleExtensionMethod(context.Background(), method, params)
+	case claudeSDKMessageMethod:
+		c.handleClaudeSDKMessage(params)
 	default:
 		return false
 	}
@@ -650,6 +652,10 @@ func (c *conversation) processUpdate(params acpsdk.SessionNotification) error {
 		update.AgentThoughtChunk != nil ||
 		update.ToolCall != nil ||
 		update.Plan != nil
+	if providerOutputResumed && turnID == "" {
+		// Output with no prompt in flight: the agent started this cycle itself.
+		turnID = c.beginAgentStartedTurn()
+	}
 	if providerOutputResumed {
 		c.completeProviderFailure(turnID, emit)
 	}

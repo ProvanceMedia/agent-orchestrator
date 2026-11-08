@@ -97,6 +97,9 @@ func New(plugin claudePlugin, log *slog.Logger, onAuthRejected func()) ports.Cha
 		// claude-agent-acp keeps one TaskCreate/TaskUpdate list for the session
 		// and re-sends it at the start of every prompt while a task is unfinished.
 		PlansSpanTurns: true,
+		// claude-agent-acp relays the SDK's result and idle messages (see
+		// claudeACPSessionMeta), so the end of an agent-started cycle is known.
+		AgentStartedTurns: true,
 		Capabilities: ports.ChatCapabilities{
 			ports.ChatCapabilityStreaming:    true,
 			ports.ChatCapabilityTools:        true,
@@ -160,7 +163,7 @@ func New(plugin claudePlugin, log *slog.Logger, onAuthRejected func()) ports.Cha
 			}, nil
 		},
 		ServedModel:    claudeServedModel,
-		SessionMeta:    claudeSessionMeta,
+		SessionMeta:    claudeACPSessionMeta,
 		SessionMode:    claudeSessionMode,
 		SessionOptions: claudeSessionOptions,
 		ValidateModel: func(ctx context.Context, _ acpdriver.LaunchConfig, model string) error {
@@ -479,6 +482,32 @@ func claudeSessionMeta(cfg acpdriver.LaunchConfig) map[string]any {
 }
 
 const claudeAutoCompactWindowEnv = "CLAUDE_CODE_AUTO_COMPACT_WINDOW"
+
+// claudeCycleEndMessages selects the raw SDK messages that end a processing
+// cycle: the result, and the session-state change that reports idle. The
+// driver uses them to end a turn the agent started itself, such as after a
+// background task finished, because no prompt result ends that turn.
+var claudeCycleEndMessages = []map[string]any{
+	{"type": "result"},
+	{"type": "system", "subtype": "session_state_changed"},
+}
+
+// claudeACPSessionMeta is claudeSessionMeta plus the request that
+// claude-agent-acp relay the cycle-end messages as _claude/sdkMessage
+// notifications.
+func claudeACPSessionMeta(cfg acpdriver.LaunchConfig) map[string]any {
+	meta := claudeSessionMeta(cfg)
+	if meta == nil {
+		meta = map[string]any{}
+	}
+	claude, _ := meta["claudeCode"].(map[string]any)
+	if claude == nil {
+		claude = map[string]any{}
+		meta["claudeCode"] = claude
+	}
+	claude["emitRawSDKMessages"] = claudeCycleEndMessages
+	return meta
+}
 
 func claudeSessionMode(permission ports.PermissionMode) string {
 	switch ports.NormalizePermissionMode(permission) {

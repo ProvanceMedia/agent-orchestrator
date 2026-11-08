@@ -537,3 +537,33 @@ func TestClaudeServedModelOnlyReportsAliases(t *testing.T) {
 		t.Fatalf("concrete model reported as rerouted to %q", served)
 	}
 }
+
+// The driver ends an agent-started turn at the SDK's own end of a cycle, so the
+// session must ask claude-agent-acp to relay those messages. The other session
+// options stay in place.
+func TestClaudeACPSessionMetaAsksForCycleEndMessages(t *testing.T) {
+	t.Setenv("CLAUDE_CODE_ENABLE_TODO_TOOLS", "0")
+	for name, cfg := range map[string]acpdriver.LaunchConfig{
+		"no other meta": {},
+		"tools off":     {DisableTools: true, SystemPrompt: "AO standing instructions"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			meta := claudeACPSessionMeta(cfg)
+			claude, ok := meta["claudeCode"].(map[string]any)
+			if !ok {
+				t.Fatalf("meta = %#v, want claudeCode", meta)
+			}
+			if !reflect.DeepEqual(claude["emitRawSDKMessages"], claudeCycleEndMessages) {
+				t.Fatalf("emitRawSDKMessages = %#v, want %#v", claude["emitRawSDKMessages"], claudeCycleEndMessages)
+			}
+			if cfg.DisableTools {
+				if _, ok := claude["options"]; !ok {
+					t.Fatalf("claudeCode = %#v, lost the tool options", claude)
+				}
+				if _, ok := meta["systemPrompt"]; !ok {
+					t.Fatalf("meta = %#v, lost the system prompt", meta)
+				}
+			}
+		})
+	}
+}
