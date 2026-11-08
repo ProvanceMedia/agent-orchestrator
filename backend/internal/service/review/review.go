@@ -90,6 +90,7 @@ type Service struct {
 	telemetry          ports.EventSink
 	codexOperationGate ports.CodexOperationGate
 	notifications      reviewNotificationSink
+	resultReporter     ResultReporter
 	prRefresher        PRRefresher
 	reviewRefresher    ThreadRefresher
 	// engineTrigger indirects the engine's source-tagged trigger so the
@@ -100,6 +101,26 @@ type Service struct {
 
 type reviewNotificationSink interface {
 	Notify(context.Context, ports.NotificationIntent) error
+}
+
+// ResultReporter queues a message about a finished review pass for the
+// worker's project orchestrator. It returns false when nothing was queued,
+// for example because the project has no active orchestrator.
+type ResultReporter interface {
+	CreateReviewResult(ctx context.Context, workerID domain.SessionID, runID, message string) (bool, error)
+}
+
+// WithResultReporter tells the project orchestrator when a review pass that an
+// agent or auto review started finishes.
+func WithResultReporter(r ResultReporter) Option {
+	return func(s *Service) { s.resultReporter = r }
+}
+
+// SetResultReporter sets the reporter after construction, because the daemon
+// builds the report service after the review service. Call it during daemon
+// start-up, before the HTTP server accepts review submissions.
+func (s *Service) SetResultReporter(r ResultReporter) {
+	s.resultReporter = r
 }
 
 var _ Manager = (*Service)(nil)
@@ -948,6 +969,9 @@ func (s *Service) submitOne(ctx context.Context, workerID domain.SessionID, revi
 			// all, recorded at the moment it is snapshotted onto the run.
 			"auto_inject": session.AutoInjectReview,
 		})
+		// Also only on the real transition, so a repeated submit does not
+		// tell the orchestrator twice.
+		s.reportResult(ctx, run)
 	case domain.ReviewRunComplete:
 		if run.Verdict != verdict {
 			return domain.ReviewRun{}, fmt.Errorf("%w: review run %q already recorded verdict %q", ErrInvalid, runID, run.Verdict)
@@ -985,18 +1009,71 @@ func (s *Service) emitReviewNotification(ctx context.Context, run domain.ReviewR
 	} else {
 		intent.Type = domain.NotificationReviewCompleted
 	}
-	prs, listErr := s.store.ListPRsBySession(ctx, run.SessionID)
-	if listErr == nil {
-		for _, pr := range prs {
-			if pr.URL == run.PRURL || pr.HTMLURL == run.PRURL {
-				intent.PRNumber, intent.PRTitle = pr.Number, pr.Title
-				break
-			}
-		}
-	}
+	intent.PRNumber, intent.PRTitle = s.runPR(ctx, run)
 	if err := s.notifications.Notify(ctx, intent); err != nil {
 		slog.Default().WarnContext(ctx, "review notification failed", "session", run.SessionID, "run", run.ID, "err", err)
 	}
+}
+
+// runPR returns the number and title of the PR a review run targets, or zero
+// values when the worker no longer tracks it.
+func (s *Service) runPR(ctx context.Context, run domain.ReviewRun) (int, string) {
+	prs, err := s.store.ListPRsBySession(ctx, run.SessionID)
+	if err != nil {
+		return 0, ""
+	}
+	for _, pr := range prs {
+		if pr.URL == run.PRURL || pr.HTMLURL == run.PRURL {
+			return pr.Number, pr.Title
+		}
+	}
+	return 0, ""
+}
+
+// reportResult tells the project orchestrator that a review pass finished, so
+// it does not have to poll ao review ls. A review that a person started from
+// the app is skipped, because the app shows that person the result.
+func (s *Service) reportResult(ctx context.Context, run domain.ReviewRun) {
+	if s.resultReporter == nil || run.TriggerSource == domain.ReviewTriggerManual {
+		return
+	}
+	number, _ := s.runPR(ctx, run)
+	if _, err := s.resultReporter.CreateReviewResult(ctx, run.SessionID, run.ID, reviewResultMessage(run, number)); err != nil {
+		slog.Default().WarnContext(ctx, "review result report failed", "session", run.SessionID, "run", run.ID, "err", err)
+	}
+}
+
+func reviewResultMessage(run domain.ReviewRun, prNumber int) string {
+	target := "the PR"
+	if prNumber > 0 {
+		target = fmt.Sprintf("PR #%d", prNumber)
+	}
+	verdict := "approved"
+	if run.Verdict == domain.VerdictChangesRequested {
+		verdict = "changes requested"
+	}
+	var detail []string
+	if run.Harness != "" {
+		detail = append(detail, string(run.Harness))
+	}
+	if sha := strings.TrimSpace(run.TargetSHA); sha != "" {
+		if len(sha) > 7 {
+			sha = sha[:7]
+		}
+		detail = append(detail, "head "+sha)
+	}
+	msg := fmt.Sprintf("Swarm review of %s finished: %s", target, verdict)
+	if len(detail) > 0 {
+		msg += " (" + strings.Join(detail, ", ") + ")"
+	}
+	msg += "."
+	if run.Verdict == domain.VerdictChangesRequested {
+		msg += " The findings are on the PR."
+	}
+	if run.PRURL != "" {
+		msg += " " + run.PRURL
+	}
+	return msg
 }
 
 // List returns a worker's review state.

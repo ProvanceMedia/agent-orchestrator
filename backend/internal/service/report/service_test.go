@@ -2,8 +2,10 @@ package report
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/aoagents/agent-orchestrator/backend/internal/domain"
 )
@@ -197,5 +199,64 @@ func TestCreateDoneKeepsSettlementWindowWhenSessionsCannotBeRead(t *testing.T) {
 	want := now.Add(domain.ReportSettlementWindow)
 	if !r.AvailableAt.Equal(want) || !r.SettlementDeadline.Equal(want) {
 		t.Fatalf("available=%v settles=%v, want both %v", r.AvailableAt, r.SettlementDeadline, want)
+	}
+}
+
+func reviewResultStore(orchestrator domain.SessionRecord) *fakeSessionStore {
+	st := &fakeSessionStore{sessions: []domain.SessionRecord{worker("ao-7", domain.ActivityIdle, false), orchestrator}}
+	st.ok = true
+	st.session = worker("ao-7", domain.ActivityIdle, false)
+	return st
+}
+
+func TestCreateReviewResultQueuesAnInformationReportDueAtOnce(t *testing.T) {
+	now := time.Date(2026, 11, 8, 13, 34, 23, 0, time.UTC)
+	st := reviewResultStore(domain.SessionRecord{ID: "ao-1", ProjectID: "ao", Kind: domain.KindOrchestrator, Activity: domain.Activity{State: domain.ActivityIdle}})
+	woken := 0
+	s := New(Deps{Store: st, Now: func() time.Time { return now }, OnCreated: func(domain.ReportRecord) { woken++ }})
+
+	created, err := s.CreateReviewResult(context.Background(), "ao-7", "rr-1", "Review finished: approved")
+	if err != nil || !created {
+		t.Fatalf("CreateReviewResult = (%v, %v), want created", created, err)
+	}
+	r := st.created
+	if r.ID != "rpt_review_rr-1" || r.SessionID != "ao-7" || r.ProjectID != "ao" || r.State != "" || r.Message != "Review finished: approved" {
+		t.Fatalf("report = %+v", r)
+	}
+	if !r.AvailableAt.Equal(now) || !r.SettlementDeadline.IsZero() || r.DeliveryState != domain.ReportPending {
+		t.Fatalf("report schedule = available %v settles %v state %q, want due at once and pending", r.AvailableAt, r.SettlementDeadline, r.DeliveryState)
+	}
+	if err := r.Validate(); err != nil {
+		t.Fatalf("report does not validate: %v", err)
+	}
+	if woken != 1 {
+		t.Fatalf("OnCreated calls = %d, want 1", woken)
+	}
+}
+
+// With no orchestrator to receive it, the report would stay pending at the
+// front of the delivery queue, so none is created.
+func TestCreateReviewResultSkipsProjectsWithNoActiveOrchestrator(t *testing.T) {
+	for name, orchestrator := range map[string]domain.SessionRecord{
+		"none":       worker("ao-8", domain.ActivityIdle, false),
+		"exited":     {ID: "ao-1", ProjectID: "ao", Kind: domain.KindOrchestrator, Activity: domain.Activity{State: domain.ActivityExited}},
+		"terminated": {ID: "ao-1", ProjectID: "ao", Kind: domain.KindOrchestrator, IsTerminated: true},
+	} {
+		st := reviewResultStore(orchestrator)
+		created, err := New(Deps{Store: st}).CreateReviewResult(context.Background(), "ao-7", "rr-1", "Review finished: approved")
+		if err != nil || created || st.created.ID != "" {
+			t.Fatalf("%s: CreateReviewResult = (%v, %v) report %+v, want nothing created", name, created, err, st.created)
+		}
+	}
+}
+
+func TestCreateReviewResultCutsTheMessageToTheReportLimit(t *testing.T) {
+	st := reviewResultStore(domain.SessionRecord{ID: "ao-1", ProjectID: "ao", Kind: domain.KindOrchestrator})
+	long := strings.Repeat("é", domain.MaxReportTextCharacters+50)
+	if _, err := New(Deps{Store: st}).CreateReviewResult(context.Background(), "ao-7", "rr-1", long); err != nil {
+		t.Fatal(err)
+	}
+	if got := utf8.RuneCountInString(st.created.Message); got != domain.MaxReportTextCharacters {
+		t.Fatalf("message length = %d runes, want %d", got, domain.MaxReportTextCharacters)
 	}
 }

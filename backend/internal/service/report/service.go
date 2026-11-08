@@ -181,3 +181,71 @@ func (s *Service) noOtherWorkerBusy(ctx context.Context, reporter domain.Session
 	}
 	return true
 }
+
+// CreateReviewResult queues an information report for the project
+// orchestrator when a built-in review pass of a worker's PR finishes. The
+// report is due at once. The ID comes from the review run, so one run gives at
+// most one report. It returns false and creates nothing when the project has
+// no active orchestrator, because a report with no receiver stays pending at
+// the front of the delivery queue.
+func (s *Service) CreateReviewResult(ctx context.Context, workerID domain.SessionID, runID, message string) (bool, error) {
+	if s == nil || s.store == nil {
+		return false, errors.New("report: store is required")
+	}
+	if workerID == "" || runID == "" {
+		return false, apierr.Invalid("INVALID_REPORT_SESSION", "Worker session id and review run id are required", nil)
+	}
+	if runes := []rune(message); len(runes) > domain.MaxReportTextCharacters {
+		message = string(runes[:domain.MaxReportTextCharacters])
+	}
+	if err := domain.ValidateReportContent("", "", message, nil); err != nil {
+		return false, apierr.Invalid("INVALID_REPORT", "Review result message is invalid", nil)
+	}
+	session, ok, err := s.store.GetSession(ctx, workerID)
+	if err != nil {
+		return false, err
+	}
+	if !ok {
+		return false, apierr.NotFound("SESSION_NOT_FOUND", "Unknown session")
+	}
+	if session.Kind != domain.KindWorker {
+		return false, apierr.Invalid("REPORT_WORKER_REQUIRED", "Reports can only be created by worker sessions", nil)
+	}
+	if !s.hasActiveOrchestrator(ctx, session.ProjectID) {
+		return false, nil
+	}
+	now := s.now().UTC()
+	created, err := s.store.CreateReport(ctx, domain.ReportRecord{
+		ID: "rpt_review_" + runID, SessionID: session.ID, ProjectID: session.ProjectID,
+		Message: message, CreatedAt: now, DeliveryState: domain.ReportPending,
+		AvailableAt: now, RepeatCount: 1,
+	})
+	if err != nil {
+		return false, err
+	}
+	if s.onCreated != nil {
+		s.onCreated(created)
+	}
+	return true, nil
+}
+
+// hasActiveOrchestrator uses the same test as the delivery coordinator. It
+// returns false when the store cannot list sessions.
+func (s *Service) hasActiveOrchestrator(ctx context.Context, projectID domain.ProjectID) bool {
+	lister, ok := s.store.(interface {
+		ListSessions(context.Context, domain.ProjectID) ([]domain.SessionRecord, error)
+	})
+	if !ok {
+		return false
+	}
+	sessions, err := lister.ListSessions(ctx, projectID)
+	if err != nil {
+		return false
+	}
+	for _, rec := range sessions {
+		if rec.Kind == domain.KindOrchestrator && !rec.IsTerminated && rec.Activity.State != domain.ActivityExited {
+			return true
+		}
+	}
+	return false
+}

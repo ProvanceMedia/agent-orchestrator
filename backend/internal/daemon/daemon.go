@@ -74,6 +74,7 @@ import (
 	prsvc "github.com/aoagents/agent-orchestrator/backend/internal/service/pr"
 	projectsvc "github.com/aoagents/agent-orchestrator/backend/internal/service/project"
 	reportsvc "github.com/aoagents/agent-orchestrator/backend/internal/service/report"
+	reviewsvc "github.com/aoagents/agent-orchestrator/backend/internal/service/review"
 	settingssvc "github.com/aoagents/agent-orchestrator/backend/internal/service/settings"
 	"github.com/aoagents/agent-orchestrator/backend/internal/service/shellagent"
 	"github.com/aoagents/agent-orchestrator/backend/internal/service/systemcheck"
@@ -737,6 +738,15 @@ func Run(buildVersion string) error {
 		Delivery: reportSemanticDelivery{chat: chatSvc, sessions: reportSessions, store: store},
 	})
 	chatSvc.SetReportCoordinator(reportCoordinator)
+	// Tell the project orchestrator when a review pass finishes, so it does not
+	// have to poll ao review ls for the verdict.
+	resultSink, ok := reviewSvc.(interface {
+		SetResultReporter(reviewsvc.ResultReporter)
+	})
+	if !ok {
+		return errors.New("wire review results: review service lacks a result reporter")
+	}
+	resultSink.SetResultReporter(reportSvc)
 	reportDeliveryDone := reportCoordinator.Start(ctx)
 	defer func() {
 		stop()
