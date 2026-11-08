@@ -21,8 +21,13 @@ func (s *turnRecordingStore) RecordTerminalTurnRequest(_ context.Context, turn d
 	return nil
 }
 
-func (s *turnRecordingStore) RecordTerminalTurnResponse(_ context.Context, _ domain.SessionID, response string, _ time.Time) error {
-	s.calls = append(s.calls, "response:"+response)
+func (s *turnRecordingStore) RecordTerminalTurnMarker(_ context.Context, turn domain.TerminalTurn) error {
+	s.calls = append(s.calls, "marker:"+string(turn.Harness)+":"+turn.NativeSessionID)
+	return nil
+}
+
+func (s *turnRecordingStore) RecordTerminalTurnStop(_ context.Context, _ domain.TerminalTurn, response string, _ time.Time) error {
+	s.calls = append(s.calls, "stop:"+response)
 	return nil
 }
 
@@ -45,6 +50,8 @@ func TestTerminalTurnsAreRecordedFromHooksInTerminalModeOnly(t *testing.T) {
 		{Event: "user-prompt-submit", TurnUserRequest: "now add a test"},
 		// A prompt hook with no text is not a request; it closes the open turn.
 		{Event: "user-prompt-submit"},
+		// A stop with no prompt before it: the agent started this turn.
+		{Event: "stop", FinalAssistantMessage: "background check done"},
 	}
 	for _, tc := range []struct {
 		name string
@@ -56,9 +63,10 @@ func TestTerminalTurnsAreRecordedFromHooksInTerminalModeOnly(t *testing.T) {
 			rec: domain.SessionRecord{ID: "s-1", Harness: domain.HarnessCodex, Mode: domain.SessionModeTUI,
 				Metadata: domain.SessionMetadata{RuntimeLaunchID: "launch", AgentSessionID: "thread-1", AgentSessionIDLaunchID: "launch"}},
 			want: []string{
-				"request:codex:thread-1:fix the importer", "response:importer fixed", "response:",
-				"request:codex:thread-1:add a retry", "response:",
-				"request:codex:thread-1:now add a test", "response:",
+				"request:codex:thread-1:fix the importer", "stop:importer fixed", "marker:codex:thread-1",
+				"request:codex:thread-1:add a retry", "stop:",
+				"request:codex:thread-1:now add a test", "marker:codex:thread-1",
+				"stop:background check done",
 			},
 		},
 		{

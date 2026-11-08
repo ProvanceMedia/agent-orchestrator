@@ -16,6 +16,11 @@ const (
 	// TerminalTurnRetention is how many Terminal UI turns AO keeps per session.
 	TerminalTurnRetention = 50
 
+	// AgentStartedTurnRequest stands in for the request of a turn that no
+	// message started, such as the turn an agent runs when its background task
+	// finishes.
+	AgentStartedTurnRequest = "(started by the agent, not by a message)"
+
 	handoffPreviousTurnLimit = 5
 	handoffOlderTurnLimit    = 15
 

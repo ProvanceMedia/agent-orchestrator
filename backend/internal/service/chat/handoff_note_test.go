@@ -75,8 +75,11 @@ func TestChatHandoffTurnsKeepAgentStartedTurns(t *testing.T) {
 	turns := []domain.ConversationTurn{
 		{ID: "t1", State: domain.TurnStateCompleted},
 		{ID: "t2", State: domain.TurnStateCompleted},
+		// A provider-started turn the driver recorded: no user message.
+		{ID: "t0", State: domain.TurnStateCompleted},
 	}
 	messages := []domain.ConversationMessage{
+		message(0, "t0", domain.MessageRoleAssistant, domain.MessageOriginProvider, "the background check finished", false),
 		message(1, "t1", domain.MessageRoleUser, domain.MessageOriginHuman, "do the run", false),
 		message(2, "t1", domain.MessageRoleAssistant, domain.MessageOriginProvider, "started", false),
 		message(3, "", domain.MessageRoleAssistant, domain.MessageOriginProvider, "the poll finished", true),
@@ -88,8 +91,9 @@ func TestChatHandoffTurnsKeepAgentStartedTurns(t *testing.T) {
 
 	busy := chatHandoffTurns(turns, messages, nil, false)
 	want := []domain.HandoffTurn{
+		{UserRequest: domain.AgentStartedTurnRequest, AgentResponse: "the background check finished"},
 		{UserRequest: "do the run", AgentResponse: "started"},
-		{UserRequest: agentStartedTurnRequest, AgentResponse: "review approved"},
+		{UserRequest: domain.AgentStartedTurnRequest, AgentResponse: "review approved"},
 		{UserRequest: "report from a worker", AgentResponse: "noted"},
 	}
 	if !reflect.DeepEqual(busy, want) {
@@ -98,7 +102,7 @@ func TestChatHandoffTurnsKeepAgentStartedTurns(t *testing.T) {
 
 	// When the agent is idle, its newest agent-started turn is complete too.
 	idle := chatHandoffTurns(turns, messages, nil, true)
-	want = append(want, domain.HandoffTurn{UserRequest: agentStartedTurnRequest, AgentResponse: "final report"})
+	want = append(want, domain.HandoffTurn{UserRequest: domain.AgentStartedTurnRequest, AgentResponse: "final report"})
 	if !reflect.DeepEqual(idle, want) {
 		t.Fatalf("turns while the agent is idle =\n%+v\nwant\n%+v", idle, want)
 	}

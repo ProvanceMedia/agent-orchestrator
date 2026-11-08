@@ -46,10 +46,6 @@ func (s *Service) SessionTurns(ctx context.Context, id domain.SessionID) ([]doma
 	return turns, nil
 }
 
-// agentStartedTurnRequest stands in for the request of a turn that no message
-// started, such as the turn an agent runs when its background task finishes.
-const agentStartedTurnRequest = "(started by the agent, not by a message)"
-
 // sessionIdle reports whether the session's agent is not working now. It
 // returns false when the session cannot be read.
 func (s *Service) sessionIdle(ctx context.Context, id domain.SessionID) bool {
@@ -64,11 +60,12 @@ func (s *Service) sessionIdle(ctx context.Context, id domain.SessionID) bool {
 // per completed turn. A request is what a person typed or what was sent to the
 // session through AO; the daemon's own messages are not requests.
 //
-// A turn the agent starts itself reaches the conversation as assistant
-// messages with no AO turn, and the Chat driver never settles them. Each run
-// of such messages is kept as one turn, answered by its last message, with
-// agentStartedTurnRequest as its request. A run counts once a later message
-// exists, or once the agent is idle.
+// A turn the agent starts itself has no request. A driver that can tell when
+// such a turn ends records it as a provider-started turn with no user message.
+// Older rows, and drivers that cannot tell, leave its assistant messages with
+// no AO turn and never settle them: each run of those is one turn, answered by
+// its last message, and counts once a later message exists or the agent is
+// idle. Both kinds take domain.AgentStartedTurnRequest as the request.
 //
 // Each turn is credited to the provider that answered it: the one the newest
 // switch marker before it brought in. Turns before the first marker were the
@@ -103,6 +100,9 @@ func chatHandoffTurns(turns []domain.ConversationTurn, messages []domain.Convers
 	}
 	type exchange struct {
 		user, assistant *domain.ConversationMessage
+		// anyUser is true when the turn has a user message of any origin. A
+		// turn with none was started by the agent, not by a message.
+		anyUser bool
 	}
 	exchanges := make(map[string]*exchange, len(turns))
 	for _, turn := range turns {
@@ -118,6 +118,7 @@ func chatHandoffTurns(turns []domain.ConversationTurn, messages []domain.Convers
 		}
 		switch message.Role {
 		case domain.MessageRoleUser:
+			pair.anyUser = true
 			asked := message.Origin == domain.MessageOriginHuman || message.Origin == domain.MessageOriginAutomation
 			if asked && (pair.user == nil || message.Sequence < pair.user.Sequence) {
 				pair.user = message
@@ -128,23 +129,22 @@ func chatHandoffTurns(turns []domain.ConversationTurn, messages []domain.Convers
 			}
 		}
 	}
-	complete := make([]*exchange, 0, len(exchanges))
-	for _, pair := range exchanges {
-		if pair.user != nil && pair.assistant != nil && strings.TrimSpace(pair.user.Text) != "" {
-			complete = append(complete, pair)
-		}
-	}
 	type sequencedTurn struct {
 		sequence int64
 		turn     domain.HandoffTurn
 	}
-	ordered := make([]sequencedTurn, 0, len(complete))
-	for _, pair := range complete {
-		ordered = append(ordered, sequencedTurn{pair.user.Sequence, domain.HandoffTurn{UserRequest: pair.user.Text, AgentResponse: pair.assistant.Text, At: pair.user.CreatedAt, Harness: answeredBy(pair.user.Sequence)}})
+	ordered := make([]sequencedTurn, 0, len(exchanges))
+	for _, pair := range exchanges {
+		switch {
+		case pair.user != nil && pair.assistant != nil && strings.TrimSpace(pair.user.Text) != "":
+			ordered = append(ordered, sequencedTurn{pair.user.Sequence, domain.HandoffTurn{UserRequest: pair.user.Text, AgentResponse: pair.assistant.Text, At: pair.user.CreatedAt, Harness: answeredBy(pair.user.Sequence)}})
+		case !pair.anyUser && pair.assistant != nil && strings.TrimSpace(pair.assistant.Text) != "":
+			ordered = append(ordered, sequencedTurn{pair.assistant.Sequence, domain.HandoffTurn{UserRequest: domain.AgentStartedTurnRequest, AgentResponse: pair.assistant.Text, At: pair.assistant.CreatedAt, Harness: answeredBy(pair.assistant.Sequence)}})
+		}
 	}
 	for _, run := range agentStartedRuns(messages, idle) {
 		first, last := run[0], run[len(run)-1]
-		ordered = append(ordered, sequencedTurn{first.Sequence, domain.HandoffTurn{UserRequest: agentStartedTurnRequest, AgentResponse: last.Text, At: first.CreatedAt, Harness: answeredBy(first.Sequence)}})
+		ordered = append(ordered, sequencedTurn{first.Sequence, domain.HandoffTurn{UserRequest: domain.AgentStartedTurnRequest, AgentResponse: last.Text, At: first.CreatedAt, Harness: answeredBy(first.Sequence)}})
 	}
 	sort.Slice(ordered, func(i, j int) bool { return ordered[i].sequence < ordered[j].sequence })
 	out := make([]domain.HandoffTurn, 0, len(ordered))
