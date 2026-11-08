@@ -4239,7 +4239,6 @@ func TestSpawnGenericOrchestratorReturnsExistingActiveSession(t *testing.T) {
 		ProjectID:   "mer",
 		Kind:        domain.KindOrchestrator,
 		Harness:     domain.HarnessClaudeCode,
-		Prompt:      "start another orchestrator",
 		DisplayName: "duplicate",
 	})
 	if err != nil {
@@ -4253,6 +4252,51 @@ func TestSpawnGenericOrchestratorReturnsExistingActiveSession(t *testing.T) {
 	}
 	if fc.spawned {
 		t.Fatal("manager.Spawn must not be called when an active orchestrator already exists")
+	}
+}
+
+// A prompted spawn cannot reuse the live orchestrator, because the reused
+// session never receives the prompt. The caller gets a conflict that names the
+// live orchestrator, so it can send the prompt to it instead.
+func TestSpawnPromptedOrchestratorConflictsWithActiveSession(t *testing.T) {
+	st := newFakeStore()
+	st.projects["mer"] = domain.ProjectRecord{ID: "mer"}
+	st.sessions["mer-orch"] = domain.SessionRecord{ID: "mer-orch", ProjectID: "mer", Kind: domain.KindOrchestrator}
+	fc := &fakeCommander{}
+	svc := &Service{manager: fc, store: st}
+
+	_, _, _, err := svc.Spawn(context.Background(), ports.SpawnConfig{
+		ProjectID:   "mer",
+		Kind:        domain.KindOrchestrator,
+		Prompt:      "do the two tasks in the brief",
+		DisplayName: "run 2",
+	})
+	var apiError *apierr.Error
+	if !errors.As(err, &apiError) || apiError.Kind != apierr.KindConflict || apiError.Code != "ORCHESTRATOR_ALREADY_ACTIVE" {
+		t.Fatalf("Spawn error = %v, want ORCHESTRATOR_ALREADY_ACTIVE conflict", err)
+	}
+	if apiError.Details["sessionId"] != "mer-orch" {
+		t.Fatalf("conflict details = %v, want sessionId mer-orch", apiError.Details)
+	}
+	if !strings.Contains(apiError.Message, "ao send --session mer-orch") {
+		t.Fatalf("conflict message = %q, want it to name ao send --session mer-orch", apiError.Message)
+	}
+	if fc.spawned {
+		t.Fatal("manager.Spawn must not run while another orchestrator is active")
+	}
+}
+
+// A prompt of only spaces carries nothing to lose, so the idempotent ensure
+// still returns the live orchestrator.
+func TestSpawnBlankPromptOrchestratorReturnsExistingActiveSession(t *testing.T) {
+	st := newFakeStore()
+	st.projects["mer"] = domain.ProjectRecord{ID: "mer"}
+	st.sessions["mer-orch"] = domain.SessionRecord{ID: "mer-orch", ProjectID: "mer", Kind: domain.KindOrchestrator}
+	svc := &Service{manager: &fakeCommander{}, store: st}
+
+	got, _, _, err := svc.Spawn(context.Background(), ports.SpawnConfig{ProjectID: "mer", Kind: domain.KindOrchestrator, Prompt: "  \n"})
+	if err != nil || got.ID != "mer-orch" {
+		t.Fatalf("Spawn = (%q, %v), want existing orchestrator mer-orch", got.ID, err)
 	}
 }
 

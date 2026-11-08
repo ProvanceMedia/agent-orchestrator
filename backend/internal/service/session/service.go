@@ -388,7 +388,18 @@ func (s *Service) Spawn(ctx context.Context, cfg ports.SpawnConfig) (domain.Sess
 					nil,
 				)
 			}
-			return newestSession(existing), 0, 0, nil
+			live := newestSession(existing)
+			if strings.TrimSpace(cfg.Prompt) != "" {
+				// The reused session never receives a spawn prompt, so a
+				// silent reuse would lose it. Name the live orchestrator
+				// so the caller can send the prompt to it.
+				return domain.Session{}, 0, 0, apierr.Conflict(
+					"ORCHESTRATOR_ALREADY_ACTIVE",
+					fmt.Sprintf("Orchestrator %s is already active for this project, so the prompt was not delivered. Send it with: ao send --session %s --message <text>", live.ID, live.ID),
+					map[string]any{"sessionId": string(live.ID)},
+				)
+			}
+			return live, 0, 0, nil
 		}
 	}
 	return s.spawn(ctx, cfg)
