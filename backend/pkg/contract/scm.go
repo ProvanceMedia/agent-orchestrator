@@ -124,6 +124,11 @@ type PullRequestReviewSummary struct {
 	UnresolvedBy          []PullRequestUnresolvedReviewer `json:"unresolvedBy"`
 	ResolvedBy            []PullRequestUnresolvedReviewer `json:"resolvedBy,omitempty"`
 	Reviews               []PullRequestSubmittedReview    `json:"reviews"`
+	// AOVerdict is the built-in reviewer's verdict for the PR's current head
+	// commit, or empty when no review pass for that head has a verdict. A
+	// changes_requested verdict from any reviewer harness wins. It never
+	// changes Decision, which is the provider's own review decision.
+	AOVerdict AOReviewVerdict `json:"aoVerdict,omitempty"`
 }
 
 // PullRequestConflictFile is one file involved in a merge conflict.

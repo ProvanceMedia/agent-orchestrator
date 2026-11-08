@@ -1448,6 +1448,10 @@ type SessionPRReviewSummary struct {
 	UnresolvedBy               []SessionPRUnresolvedReviewer `json:"unresolvedBy"`
 	ResolvedBy                 []SessionPRUnresolvedReviewer `json:"resolvedBy,omitempty"`
 	Reviews                    []SessionPRReviewEntry        `json:"reviews,omitempty"`
+	// AOVerdict is the built-in reviewer's verdict for the PR's current head
+	// commit. It is absent when no review pass for that head has a verdict,
+	// and it never changes Decision, which comes from the SCM provider.
+	AOVerdict domain.ReviewVerdict `json:"aoVerdict,omitempty" enum:"approved,changes_requested"`
 }
 
 // SessionPRReviewEntry is one submitted provider review summary: a reviewer's
@@ -1578,6 +1582,7 @@ func newSessionPRReviewSummary(in sessionsvc.PRReviewSummary) SessionPRReviewSum
 		UnresolvedBy:               reviewers,
 		ResolvedBy:                 resolvedReviewers,
 		Reviews:                    entries,
+		AOVerdict:                  in.AOVerdict,
 	}
 }
 

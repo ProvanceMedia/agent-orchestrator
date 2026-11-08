@@ -7258,6 +7258,8 @@ export interface components {
         };
         SessionPRReviewSummary: {
             /** @enum {string} */
+            aoVerdict?: "approved" | "changes_requested";
+            /** @enum {string} */
             decision: "none" | "approved" | "changes_requested" | "review_required";
             hasUnresolvedHumanComments: boolean;
             resolvedBy?: components["schemas"]["SessionPRUnresolvedReviewer"][];

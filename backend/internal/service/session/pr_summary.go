@@ -52,6 +52,11 @@ func (s *Service) ListPRSummaries(ctx context.Context, id domain.SessionID) ([]P
 	if err != nil {
 		return nil, err
 	}
+	runs, err := s.store.ListCurrentHeadReviewRunsForSession(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	verdicts := currentHeadVerdicts(runs)
 	groups := groupPullRequestAliases(prs)
 	out := make([]PRSummary, 0, len(groups))
 	for _, group := range groups {
@@ -89,10 +94,38 @@ func (s *Service) ListPRSummaries(ctx context.Context, id domain.SessionID) ([]P
 				threadsExact = false
 			}
 		}
-		out = append(out, summarizePR(group.primary, checks, reviews, threads, comments, threadsExact))
+		summary := summarizePR(group.primary, checks, reviews, threads, comments, threadsExact)
+		for _, pr := range group.aliases {
+			summary.Review.AOVerdict = strongerVerdict(summary.Review.AOVerdict, verdicts[pr.URL])
+		}
+		out = append(out, summary)
 	}
 	sortPRSummaries(out)
 	return out, nil
+}
+
+// currentHeadVerdicts maps each PR URL to the built-in reviewer's verdict for
+// the PR's current head. The runs are already limited to the current head, so
+// a new push clears the verdict until a new review pass finishes.
+func currentHeadVerdicts(runs []domain.CurrentHeadReviewRun) map[string]domain.ReviewVerdict {
+	out := make(map[string]domain.ReviewVerdict, len(runs))
+	for _, run := range runs {
+		out[run.PRURL] = strongerVerdict(out[run.PRURL], run.Verdict)
+	}
+	return out
+}
+
+// strongerVerdict returns changes_requested over approved over no verdict, as
+// the board does when reviewer harnesses disagree.
+func strongerVerdict(a, b domain.ReviewVerdict) domain.ReviewVerdict {
+	switch {
+	case a == domain.VerdictChangesRequested || b == domain.VerdictChangesRequested:
+		return domain.VerdictChangesRequested
+	case a == domain.VerdictApproved || b == domain.VerdictApproved:
+		return domain.VerdictApproved
+	default:
+		return domain.VerdictNone
+	}
 }
 
 // PRListing keeps reported references separate from SCM facts and actions.

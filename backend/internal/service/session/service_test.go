@@ -5456,6 +5456,49 @@ func TestListPRSummariesThreadCountSerializesObservedZero(t *testing.T) {
 	}
 }
 
+// The built-in reviewer's verdict for the current head is reported next to
+// the provider decision and never replaces it: the provider decision is what
+// branch protection reads.
+func TestListPRSummariesExposesBuiltInReviewVerdictForCurrentHead(t *testing.T) {
+	st := newFakeStore()
+	st.sessions["mer-1"] = domain.SessionRecord{ID: "mer-1", ProjectID: "mer", Kind: domain.KindWorker}
+	st.reviewRuns["mer-1"] = []domain.CurrentHeadReviewRun{
+		{SessionID: "mer-1", Harness: "claude-code", PRURL: "approved", Status: domain.ReviewRunComplete, Verdict: domain.VerdictApproved},
+		{SessionID: "mer-1", Harness: "claude-code", PRURL: "split", Status: domain.ReviewRunComplete, Verdict: domain.VerdictApproved},
+		{SessionID: "mer-1", Harness: "codex", PRURL: "split", Status: domain.ReviewRunComplete, Verdict: domain.VerdictChangesRequested},
+		{SessionID: "mer-1", Harness: "claude-code", PRURL: "running", Status: domain.ReviewRunRunning},
+	}
+	stList := &multiPRFakeStore{fakeStore: st, prs: []domain.PullRequest{
+		{URL: "approved", SessionID: "mer-1", Number: 1},
+		{URL: "split", SessionID: "mer-1", Number: 2, Review: domain.ReviewRequired},
+		{URL: "running", SessionID: "mer-1", Number: 3},
+		{URL: "unreviewed", SessionID: "mer-1", Number: 4},
+	}}
+
+	got, err := (&Service{store: stList}).ListPRSummaries(context.Background(), "mer-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	byURL := map[string]PRSummary{}
+	for _, pr := range got {
+		byURL[pr.URL] = pr
+	}
+	for url, want := range map[string]struct {
+		decision domain.ReviewDecision
+		verdict  domain.ReviewVerdict
+	}{
+		"approved":   {domain.ReviewNone, domain.VerdictApproved},
+		"split":      {domain.ReviewRequired, domain.VerdictChangesRequested},
+		"running":    {domain.ReviewNone, ""},
+		"unreviewed": {domain.ReviewNone, ""},
+	} {
+		review := byURL[url].Review
+		if review.Decision != want.decision || review.AOVerdict != want.verdict {
+			t.Errorf("%s review = (decision %q, aoVerdict %q), want (%q, %q)", url, review.Decision, review.AOVerdict, want.decision, want.verdict)
+		}
+	}
+}
+
 func TestListPRSummariesDedupesAliasReviewThreads(t *testing.T) {
 	// The same provider thread persisted under two repository-URL aliases of
 	// one canonical PR must count once, with the fresher alias record winning

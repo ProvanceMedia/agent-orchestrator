@@ -20615,6 +20615,11 @@ components:
       type: object
     SessionPRReviewSummary:
       properties:
+        aoVerdict:
+          enum:
+          - approved
+          - changes_requested
+          type: string
         decision:
           enum:
           - none
