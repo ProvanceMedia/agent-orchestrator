@@ -47,7 +47,7 @@ func TestChatHandoffTurnsCreditEachProviderAndKeepRequestsSentThroughAO(t *testi
 		marker(8, domain.HarnessClaudeCode, domain.HarnessKimchi, "b-kimchi"),
 	}
 
-	got := chatHandoffTurns(turns, messages, activities)
+	got := chatHandoffTurns(turns, messages, activities, true)
 	want := []domain.HandoffTurn{
 		{UserRequest: "typed in the app", AgentResponse: "codex answered", Harness: domain.HarnessCodex},
 		{UserRequest: "sent with ao send", AgentResponse: "claude answered", Harness: domain.HarnessClaudeCode},
@@ -59,8 +59,47 @@ func TestChatHandoffTurnsCreditEachProviderAndKeepRequestsSentThroughAO(t *testi
 	}
 
 	// A conversation that never switched cannot say who answered.
-	unswitched := chatHandoffTurns(turns[:1], messages[:2], nil)
+	unswitched := chatHandoffTurns(turns[:1], messages[:2], nil, true)
 	if len(unswitched) != 1 || unswitched[0].Harness != "" {
 		t.Fatalf("unswitched turns = %+v, want one uncredited turn", unswitched)
+	}
+}
+
+// A turn the agent starts itself, such as after a background task finishes,
+// reaches the conversation with no AO turn, and the driver never settles its
+// messages. History keeps it as its own turn, answered by its last message.
+func TestChatHandoffTurnsKeepAgentStartedTurns(t *testing.T) {
+	message := func(sequence int64, turn string, role domain.MessageRole, origin domain.MessageOrigin, text string, streaming bool) domain.ConversationMessage {
+		return domain.ConversationMessage{Sequence: sequence, TurnID: turn, Role: role, Origin: origin, Text: text, Streaming: streaming}
+	}
+	turns := []domain.ConversationTurn{
+		{ID: "t1", State: domain.TurnStateCompleted},
+		{ID: "t2", State: domain.TurnStateCompleted},
+	}
+	messages := []domain.ConversationMessage{
+		message(1, "t1", domain.MessageRoleUser, domain.MessageOriginHuman, "do the run", false),
+		message(2, "t1", domain.MessageRoleAssistant, domain.MessageOriginProvider, "started", false),
+		message(3, "", domain.MessageRoleAssistant, domain.MessageOriginProvider, "the poll finished", true),
+		message(4, "", domain.MessageRoleAssistant, domain.MessageOriginProvider, "review approved", true),
+		message(5, "t2", domain.MessageRoleUser, domain.MessageOriginAutomation, "report from a worker", false),
+		message(6, "t2", domain.MessageRoleAssistant, domain.MessageOriginProvider, "noted", false),
+		message(7, "", domain.MessageRoleAssistant, domain.MessageOriginProvider, "final report", true),
+	}
+
+	busy := chatHandoffTurns(turns, messages, nil, false)
+	want := []domain.HandoffTurn{
+		{UserRequest: "do the run", AgentResponse: "started"},
+		{UserRequest: agentStartedTurnRequest, AgentResponse: "review approved"},
+		{UserRequest: "report from a worker", AgentResponse: "noted"},
+	}
+	if !reflect.DeepEqual(busy, want) {
+		t.Fatalf("turns while the agent is busy =\n%+v\nwant\n%+v", busy, want)
+	}
+
+	// When the agent is idle, its newest agent-started turn is complete too.
+	idle := chatHandoffTurns(turns, messages, nil, true)
+	want = append(want, domain.HandoffTurn{UserRequest: agentStartedTurnRequest, AgentResponse: "final report"})
+	if !reflect.DeepEqual(idle, want) {
+		t.Fatalf("turns while the agent is idle =\n%+v\nwant\n%+v", idle, want)
 	}
 }
