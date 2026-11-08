@@ -236,6 +236,15 @@ PR actions are available through `ao pr merge` and
 `ao review trigger` (also `execute` and `restart`), `ao review cancel` (also
 `stop`), and `ao review submit`.
 
+When a review pass that an agent or auto review started records its verdict,
+Swarm queues an information report for the active project orchestrator. The
+report names the PR, the verdict, the reviewer and the head commit, and it is
+due at once. Swarm sends it one time for each review pass. It creates no
+report when the project has no active orchestrator, or when a person started
+the review from the app. `ao session ls` shows the built-in reviewer's verdict
+for the current head as `swarm:<verdict>` in the REVIEW column, next to the
+provider's review decision.
+
 ## Configuration
 
 The CLI and daemon share the same environment-driven config:
