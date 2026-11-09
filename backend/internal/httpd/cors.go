@@ -129,7 +129,7 @@ func rendererOnlyArea(path string) string {
 		}},
 		// A connection call spends the user's API keys, and the settings
 		// routes change them.
-		{"connections", []string{"/api/v1/connections"}},
+		{"connections", []string{"/api/v1/connections", "/api/v1/mcp"}},
 	} {
 		for _, prefix := range area.prefixes {
 			if path == prefix || strings.HasPrefix(path, prefix+"/") {
@@ -153,7 +153,7 @@ func browserRequestAllowed(r *http.Request, allowed map[string]struct{}) bool {
 		return true
 	}
 	if origin == "" {
-		return r.Header.Get("Sec-Fetch-Site") == "" || isPreviewHost(r.Host) || isPreviewFileRequest(r) || isRenderDocumentRequest(r) || authenticatedLANBearer(r)
+		return r.Header.Get("Sec-Fetch-Site") == "" || isPreviewHost(r.Host) || isPreviewFileRequest(r) || isRenderDocumentRequest(r) || authenticatedLANBearer(r) || isMCPOAuthCallback(r)
 	}
 	if _, ok := allowed[origin]; ok {
 		return true
@@ -209,4 +209,12 @@ func isRenderDocumentRequest(r *http.Request) bool {
 	rest, ok := strings.CutPrefix(r.URL.Path, "/api/v1/sessions/")
 	parts := strings.Split(rest, "/")
 	return ok && len(parts) == 3 && parts[0] != "" && parts[1] == "renders" && parts[2] != "" && parts[2] != "check"
+}
+
+// isMCPOAuthCallback is the browser's top-level navigation back from an MCP
+// sign-in server. It arrives cross-site with no Origin. The handler accepts
+// only a single-use state that this daemon made, and the LAN listener blocks
+// the path, so only a browser on this Mac reaches it.
+func isMCPOAuthCallback(r *http.Request) bool {
+	return r.Method == http.MethodGet && r.URL.Path == "/api/v1/mcp-oauth/callback" && r.Header.Get("Sec-Fetch-Mode") == "navigate"
 }

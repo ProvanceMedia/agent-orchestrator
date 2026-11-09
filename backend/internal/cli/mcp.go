@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"slices"
+	"sync"
 	"unicode/utf8"
 
 	"github.com/spf13/cobra"
@@ -64,12 +65,26 @@ type mcpResponse struct {
 func (c *commandContext) serveMCP(ctx context.Context, in io.Reader, out io.Writer) error {
 	reader := bufio.NewReader(in)
 	encoder := json.NewEncoder(out)
-	state := &mcpState{}
+	// The index poll writes a notification between replies, so writes share a lock.
+	var writeMu sync.Mutex
+	write := func(v any) error {
+		writeMu.Lock()
+		defer writeMu.Unlock()
+		return encoder.Encode(v)
+	}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	state := &mcpState{conn: &mcpConnState{}}
+	state.startPoll = func() {
+		go c.pollMCPIndex(ctx, state.conn, func() {
+			_ = write(map[string]any{"jsonrpc": "2.0", "method": "notifications/tools/list_changed"})
+		})
+	}
 	for {
 		line, readErr := reader.ReadBytes('\n')
 		if line = bytes.TrimSpace(line); len(line) > 0 {
 			if resp := c.handleMCP(ctx, state, line); resp != nil {
-				if err := encoder.Encode(resp); err != nil {
+				if err := write(resp); err != nil {
 					return err
 				}
 			}
@@ -113,14 +128,22 @@ func (c *commandContext) handleMCP(ctx context.Context, state *mcpState, line []
 		}
 		resp.Result = map[string]any{
 			"protocolVersion": version,
-			"capabilities":    map[string]any{"tools": map[string]any{}},
+			"capabilities":    map[string]any{"tools": map[string]any{"listChanged": true}},
 			"serverInfo":      map[string]any{"name": "ao", "version": Version},
+		}
+		if state.startPoll != nil && !state.polling {
+			state.polling = true
+			state.startPoll()
 		}
 	case "ping":
 		resp.Result = map[string]any{}
 	case "tools/list":
 		tools := append(append([]map[string]any{}, mcpTools...), c.cuaTools(ctx, state)...)
 		tools = append(tools, c.connectionTools(ctx, state)...)
+		if state.conn != nil {
+			c.refreshMCPIndex(ctx, state.conn)
+			tools = append(tools, state.conn.list()...)
+		}
 		resp.Result = map[string]any{"tools": tools}
 	case "tools/call":
 		var p struct {
@@ -141,6 +164,20 @@ func (c *commandContext) handleMCP(ctx context.Context, state *mcpState, line []
 			if c.isConnectionTool(ctx, state, p.Name) {
 				resp.Result = c.callConnection(ctx, p.Name, p.Arguments)
 				break
+			}
+			if state.conn != nil && isMCPGeneralTool(p.Name) && state.conn.answered() {
+				resp.Result = c.callMCPConn(ctx, p.Name, p.Arguments, nil)
+				break
+			}
+			if state.conn != nil {
+				target, ok := state.conn.target(p.Name)
+				if !ok && realToolName.MatchString(p.Name) && c.refreshMCPIndex(ctx, state.conn) {
+					target, ok = state.conn.target(p.Name)
+				}
+				if ok {
+					resp.Result = c.callMCPConn(ctx, p.Name, p.Arguments, &target)
+					break
+				}
 			}
 			resp.Error = &mcpError{Code: -32602, Message: fmt.Sprintf("unknown tool %q", p.Name)}
 		}

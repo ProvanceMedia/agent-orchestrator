@@ -72,6 +72,7 @@ import (
 	"github.com/aoagents/agent-orchestrator/backend/internal/service/hookprocess"
 	importsvc "github.com/aoagents/agent-orchestrator/backend/internal/service/importer"
 	linkpreviewsvc "github.com/aoagents/agent-orchestrator/backend/internal/service/linkpreview"
+	"github.com/aoagents/agent-orchestrator/backend/internal/service/mcpconn"
 	notificationsvc "github.com/aoagents/agent-orchestrator/backend/internal/service/notification"
 	prsvc "github.com/aoagents/agent-orchestrator/backend/internal/service/pr"
 	projectsvc "github.com/aoagents/agent-orchestrator/backend/internal/service/project"
@@ -816,9 +817,48 @@ func Run(buildVersion string) error {
 	sessMgr.SetVersionTelemetry(telemetrySink)
 	// "Let agents use this computer" gives new chat sessions the computer-use tools.
 	sessMgr.SetComputerUseEnabled(settingsSvc.ComputerUseEnabled)
-	// Settings > Connections: keys in the login keychain, one agent tool each.
+	// Settings > Connections: keys in the login keychain, one agent tool each,
+	// and remote MCP servers whose credentials the daemon keeps.
 	connectionsSvc := connectionssvc.New(keychain.New(), cfg.DataDir)
-	sessMgr.SetConnectionsPrompt(connectionsSvc.PromptBlock)
+	projectOfSession := func(ctx context.Context, sessionID string) string {
+		sess, err := sessionSvc.Get(ctx, domain.SessionID(sessionID))
+		if err != nil {
+			return ""
+		}
+		return string(sess.ProjectID)
+	}
+	mcpConnsSvc := mcpconn.New(cfg.DataDir, keychain.New(), mcpconn.Deps{
+		Projects: func(ctx context.Context) []string {
+			records, err := store.ListProjects(ctx)
+			if err != nil {
+				return nil
+			}
+			ids := make([]string, 0, len(records))
+			for _, p := range records {
+				if p.ArchivedAt.IsZero() {
+					ids = append(ids, p.ID)
+				}
+			}
+			return ids
+		},
+		ProjectOf:    projectOfSession,
+		RedirectURI:  func() string { return fmt.Sprintf("http://127.0.0.1:%d%s", cfg.Port, controllers.MCPOAuthCallbackPath) },
+		OtherSecrets: connectionsSvc.SecretValues,
+		Logger:       log,
+	})
+	connectionsSvc.SetProjectGate(projectOfSession, mcpConnsSvc.ConnectorAllowed)
+	sessMgr.SetConnectionsPrompt(func(ctx context.Context, project string) string {
+		blocks := []string{}
+		for _, block := range []string{connectionsSvc.PromptBlock(ctx, project), mcpConnsSvc.PromptLines(ctx, project)} {
+			if strings.TrimSpace(block) != "" {
+				blocks = append(blocks, block)
+			}
+		}
+		if len(blocks) == 0 {
+			return ""
+		}
+		return "## Connected services\n\n" + strings.Join(blocks, "\n")
+	})
 	sessMgr.SetVersionRefreshPolicy(func() sessionmanager.VersionRefreshPolicy {
 		return versionRefreshPolicy(ctx, cfg, settingsSvc)
 	})
@@ -1134,6 +1174,7 @@ func Run(buildVersion string) error {
 		Installer:          systemInstall,
 		ComputerUse:        computerUse,
 		Connections:        connectionsSvc,
+		MCPConnections:     mcpConnsSvc,
 		Sessions:           sessionSvc,
 		Automations:        automationSvc,
 		DesktopWorkspaces:  sessionSvc,

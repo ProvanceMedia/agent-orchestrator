@@ -79,6 +79,51 @@ type Service struct {
 	// cache keeps the values read from the store, so that a call does not read
 	// the keychain each time.
 	cache map[string]map[string]string
+
+	// projectOf finds the project of a calling session, and allowed says
+	// whether a project may use a connector. Nil allows every project.
+	projectOf func(ctx context.Context, sessionID string) string
+	allowed   func(service, project string) bool
+}
+
+// SetProjectGate supplies the project grants of the connectors.
+func (s *Service) SetProjectGate(projectOf func(ctx context.Context, sessionID string) string, allowed func(service, project string) bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.projectOf, s.allowed = projectOf, allowed
+}
+
+// allowedFor reports whether the session's project may use a connector.
+func (s *Service) allowedFor(ctx context.Context, service, sessionID string) bool {
+	s.mu.Lock()
+	projectOf, allowed := s.projectOf, s.allowed
+	s.mu.Unlock()
+	if allowed == nil {
+		return true
+	}
+	project := ""
+	if projectOf != nil && sessionID != "" {
+		project = projectOf(ctx, sessionID)
+	}
+	return allowed(service, project)
+}
+
+// SecretValues returns the secret values of the connected services, so that
+// another tool's result cannot echo them.
+func (s *Service) SecretValues(ctx context.Context) []string {
+	var out []string
+	for _, c := range s.Connected(ctx) {
+		values, err := s.credentials(ctx, c)
+		if err != nil {
+			continue
+		}
+		for _, key := range c.secretKeys() {
+			if v := values[key]; v != "" {
+				out = append(out, v)
+			}
+		}
+	}
+	return out
 }
 
 // New returns a Service that keeps its index file in dataDir.
@@ -365,11 +410,15 @@ type AgentTool struct {
 	InputSchema map[string]any
 }
 
-// AgentTools returns one tool for each connected service.
-func (s *Service) AgentTools(ctx context.Context) []AgentTool {
+// AgentTools returns one tool for each connected service that the session's
+// project may use.
+func (s *Service) AgentTools(ctx context.Context, sessionID string) []AgentTool {
 	connected := s.Connected(ctx)
 	tools := make([]AgentTool, 0, len(connected))
 	for _, c := range connected {
+		if !s.allowedFor(ctx, c.ID, sessionID) {
+			continue
+		}
 		tools = append(tools, AgentTool{Name: c.Tool, Description: toolDescription(c), InputSchema: toolSchema(c)})
 	}
 	return tools
@@ -413,10 +462,21 @@ func toolSchema(c Connector) map[string]any {
 }
 
 // PromptBlock is the standing-instruction block that names the connected
-// services. Without it an agent does not know that a service is there until it
-// reads the tool list, and it looks for a key in the environment instead.
-func (s *Service) PromptBlock(ctx context.Context) string {
-	connected := s.Connected(ctx)
+// services of a project. Without it an agent does not know that a service is
+// there until it reads the tool list, and it looks for a key in the
+// environment instead. The text follows Swarm Online's connectionsBlock. It
+// says that the list covers API-key services only, so that the agent checks
+// the MCP connections before it calls a service missing.
+func (s *Service) PromptBlock(ctx context.Context, project string) string {
+	s.mu.Lock()
+	allowed := s.allowed
+	s.mu.Unlock()
+	var connected []Connector
+	for _, c := range s.Connected(ctx) {
+		if allowed == nil || allowed(c.ID, project) {
+			connected = append(connected, c)
+		}
+	}
 	if len(connected) == 0 {
 		return ""
 	}
@@ -425,11 +485,10 @@ func (s *Service) PromptBlock(ctx context.Context) string {
 		rows = append(rows, fmt.Sprintf("- %s -> %s  (%s)", c.Name, c.Tool, c.Blurb))
 	}
 	sort.Strings(rows)
-	return "## Connected services\n\n" +
-		"The user has connected these accounts in Swarm. Each one is a tool on the ao tool server that you can call now. " +
+	return "The user has connected these accounts. Each one is a tool on the ao tool server that you can call now. " +
 		"Swarm attaches the credential itself, so it never appears in your context. Never ask for a key and never look " +
 		"for one in the environment.\n" +
 		strings.Join(rows, "\n") + "\n" +
 		"Read the tool's own description before your first call: it has the paths, the auth quirks and the write rules " +
-		"for that service. Nothing else is connected. If a task needs a service that is not on this list, say so plainly."
+		"for that service. This list covers API-key services only."
 }

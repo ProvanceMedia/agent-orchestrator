@@ -21,7 +21,7 @@ type Connections interface {
 	Connect(ctx context.Context, id string, values map[string]string) (connections.Result, error)
 	Test(ctx context.Context, id string) (connections.Result, error)
 	Disconnect(ctx context.Context, id string) error
-	AgentTools(ctx context.Context) []connections.AgentTool
+	AgentTools(ctx context.Context, sessionID string) []connections.AgentTool
 	Call(ctx context.Context, tool string, args connections.CallArgs) (string, error)
 }
 
@@ -128,7 +128,7 @@ func (c *ConnectionsController) agentTools(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	out := ConnectionAgentToolsResponse{Tools: []ConnectionAgentTool{}}
-	for _, tool := range c.Svc.AgentTools(r.Context()) {
+	for _, tool := range c.Svc.AgentTools(r.Context(), r.URL.Query().Get("sessionId")) {
 		out.Tools = append(out.Tools, ConnectionAgentTool{Name: tool.Name, Description: tool.Description, InputSchema: tool.InputSchema})
 	}
 	envelope.WriteJSON(w, http.StatusOK, out)
@@ -145,7 +145,7 @@ func (c *ConnectionsController) call(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	text, err := c.Svc.Call(r.Context(), request.Tool, connections.CallArgs{
-		Path: request.Path, Method: request.Method, Body: request.Body, Fields: request.Fields,
+		Path: request.Path, Method: request.Method, Body: request.Body, Fields: request.Fields, SessionID: request.SessionID,
 	})
 	if err != nil {
 		envelope.WriteError(w, r, connectionError(err))

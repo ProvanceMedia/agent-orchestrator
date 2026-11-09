@@ -426,3 +426,25 @@ func TestRenderDocumentNavigationBoundary(t *testing.T) {
 		}
 	}
 }
+
+// The browser comes back from an MCP sign-in server with a cross-site
+// navigation and no Origin. Only that GET on that exact path may pass.
+func TestMCPOAuthCallbackAllowsOnlyTheNavigation(t *testing.T) {
+	allowed := exactAllowedOrigins(nil)
+	for _, tc := range []struct {
+		method, path, mode string
+		want               bool
+	}{
+		{http.MethodGet, "/api/v1/mcp-oauth/callback", "navigate", true},
+		{http.MethodGet, "/api/v1/mcp-oauth/callback", "cors", false},
+		{http.MethodPost, "/api/v1/mcp-oauth/callback", "navigate", false},
+		{http.MethodGet, "/api/v1/mcp/connections", "navigate", false},
+	} {
+		req := httptest.NewRequest(tc.method, tc.path, nil)
+		req.Header.Set("Sec-Fetch-Site", "cross-site")
+		req.Header.Set("Sec-Fetch-Mode", tc.mode)
+		if got := browserRequestAllowed(req, allowed); got != tc.want {
+			t.Errorf("%s %s mode=%s: allowed %v, want %v", tc.method, tc.path, tc.mode, got, tc.want)
+		}
+	}
+}

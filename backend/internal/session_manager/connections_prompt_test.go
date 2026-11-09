@@ -29,7 +29,12 @@ func TestBuildSystemPromptNamesConnectedServicesInChatOnly(t *testing.T) {
 	}
 
 	current := ""
-	m.SetConnectionsPrompt(func(context.Context) string { return current })
+	m.SetConnectionsPrompt(func(_ context.Context, project string) string {
+		if project != "mer" {
+			return ""
+		}
+		return current
+	})
 	for _, kind := range []domain.SessionKind{domain.KindWorker, domain.KindOrchestrator} {
 		current = ""
 		if sp, _ = m.buildSystemPrompt(ctx, kind, "mer", "mer-1", "", true); strings.Contains(sp, "## Connected services") {

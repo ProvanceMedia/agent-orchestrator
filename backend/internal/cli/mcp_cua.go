@@ -21,6 +21,11 @@ type mcpState struct {
 	cuaNames  map[string]bool
 	// connectionNames are the connection tools of the last list.
 	connectionNames map[string]bool
+	// conn is the remote MCP connections; startPoll starts the index poll
+	// once the client has initialized.
+	conn      *mcpConnState
+	startPoll func()
+	polling   bool
 }
 
 // cuaCallRequest, cuaImage, and cuaCallResponse mirror the daemon's

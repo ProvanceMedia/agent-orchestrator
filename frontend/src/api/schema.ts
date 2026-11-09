@@ -1237,6 +1237,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/connections/{id}/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Choose which projects can use a key-based service */
+        put: operations["setConnectorProjects"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/connections/{id}/test": {
         parameters: {
             query?: never;
@@ -1282,6 +1299,23 @@ export interface paths {
         put?: never;
         /** Make one API call for an agent with the saved key attached, and return the text the agent reads */
         post: operations["callConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/connections/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List which projects can use each key-based service; GitHub stays available to every project */
+        get: operations["listConnectorProjects"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1575,6 +1609,228 @@ export interface paths {
         get: operations["getLinkPreview"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mcp-oauth/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The browser's redirect back from an MCP sign-in server; answers an HTML page */
+        get: operations["finishMCPOAuth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mcp/agent/call": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** connection_call: call one remote tool with the credential added and secrets removed from the result */
+        post: operations["callMCPAgentTool"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mcp/agent/index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The real tools of a session's project, for the ao tool server; only the version when it is unchanged */
+        get: operations["getMCPAgentIndex"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mcp/agent/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** connections_list: the MCP connections granted to a session's project */
+        post: operations["listMCPAgentConnections"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mcp/agent/tools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** connection_tools: the tools of one MCP connection, with secrets removed */
+        post: operations["listMCPAgentTools"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mcp/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check link: find what a remote MCP server needs (nothing, a key, or a sign-in) and keep a draft */
+        post: operations["checkMCPConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mcp/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the remote MCP servers, the known server cards and the projects; no secret is returned */
+        get: operations["listMCPConnections"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mcp/connections/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a remote MCP server and its credentials */
+        delete: operations["removeMCPConnection"];
+        options?: never;
+        head?: never;
+        /** Rename a remote MCP server; agents use the name */
+        patch: operations["renameMCPConnection"];
+        trace?: never;
+    };
+    "/api/v1/mcp/connections/{id}/credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Save a key or headers after the server accepts them; a refused key keeps the old one */
+        put: operations["saveMCPCredentials"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mcp/connections/{id}/oauth/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start an OAuth sign-in and return the address to open in the browser */
+        post: operations["startMCPOAuth"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mcp/connections/{id}/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Choose which projects can use a remote MCP server; the connection becomes active here */
+        put: operations["setMCPProjects"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mcp/connections/{id}/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read the tool list of a remote MCP server again */
+        post: operations["refreshMCPTools"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mcp/paste": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Make drafts from a pasted mcpServers config; only URLs and header names are kept */
+        post: operations["pasteMCPConfig"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5257,6 +5513,8 @@ export interface components {
             method?: string;
             /** @description API path after the base URL, with any query string. */
             path: string;
+            /** @description The calling session, for the project grant. */
+            sessionId?: string;
             /** @description Agent tool name, e.g. cloudflare_api. */
             tool: string;
         };
@@ -5695,6 +5953,12 @@ export interface components {
             values?: {
                 [key: string]: string;
             };
+        };
+        ConnectorProjectsResponse: {
+            /** @description The project grant of each key-based service except GitHub. */
+            projects: {
+                [key: string]: components["schemas"]["MCPProjects"];
+            } | null;
         };
         ConsumeAgentAccountResetCreditRequest: {
             idempotencyKey: string;
@@ -6708,6 +6972,156 @@ export interface components {
             /** @description True only when the tree was read from the requested immutable snapshot. */
             snapshot?: boolean;
             truncated: boolean;
+        };
+        MCPAgentIndexResponse: {
+            connections: components["schemas"]["MCPIndexConnection"][];
+            /** @description True when the caller's version is current; then only the version is sent. */
+            unchanged?: boolean;
+            version: string;
+        };
+        MCPAgentReply: {
+            result: unknown;
+        };
+        MCPAgentRequest: {
+            /** @description The tool arguments, as an object. */
+            arguments?: unknown;
+            /** @description The connection name. */
+            name?: string;
+            /** @description The calling session, for the project grant. */
+            sessionId?: string;
+            /** @description The remote tool name. */
+            tool?: string;
+        };
+        MCPApp: {
+            auth: string;
+            description: string;
+            guidance: string;
+            key: string;
+            keyUrl?: string;
+            name: string;
+            tint: string;
+            url: string;
+        };
+        MCPCheckRequest: {
+            appKey?: string;
+            id?: string;
+            name?: string;
+            url?: string;
+        };
+        MCPCheckResponse: {
+            connection?: components["schemas"]["MCPConnectionView"];
+            error?: string;
+            field?: string;
+            id?: string;
+            ok: boolean;
+            outcome: string;
+        };
+        MCPConnectionView: {
+            appKey?: string;
+            authKind: string;
+            /** Format: int64 */
+            createdAt: number;
+            headerNames: string[];
+            health: string;
+            id: string;
+            lastError?: string;
+            name: string;
+            oauth?: components["schemas"]["MCPOAuthView"];
+            projects: null | components["schemas"]["MCPProjects"];
+            secrets: {
+                [key: string]: string;
+            } | null;
+            tools: components["schemas"]["MCPTool"][];
+            toolsFetchedAt?: null | number;
+            /** Format: int64 */
+            updatedAt: number;
+            url: string;
+            urlHasSecret: boolean;
+        };
+        MCPCredentialsRequest: {
+            headers?: components["schemas"]["MCPHeader"][];
+            key?: string;
+        };
+        MCPHeader: {
+            name: string;
+            value: string;
+        };
+        MCPIndexConnection: {
+            description: string;
+            health: string;
+            left: number;
+            name: string;
+            prefix: string;
+            tools: components["schemas"]["MCPRealTool"][];
+        };
+        MCPOAuthStartRequest: {
+            /** @description A client id that the owner typed, for a server with no client registration. */
+            clientId?: string;
+            /** @description The secret of that client, if it has one. */
+            clientSecret?: string;
+        };
+        MCPOAuthStartResponse: {
+            error?: string;
+            manualClient?: boolean;
+            ok: boolean;
+            url?: string;
+        };
+        MCPOAuthView: {
+            clientId: string;
+            issuer: string;
+            manualClient: boolean;
+            scopes: string[];
+            status: string;
+        };
+        MCPOverviewResponse: {
+            apps: components["schemas"]["MCPApp"][];
+            available: boolean;
+            connections: components["schemas"]["MCPConnectionView"][];
+            projects: string[];
+            store: components["schemas"]["MCPStoreStatus"];
+        };
+        MCPPasteRefusal: {
+            error: string;
+            name: string;
+        };
+        MCPPasteRequest: {
+            /** @description JSON with an mcpServers object. Only URLs and header names are kept. */
+            text: string;
+        };
+        MCPPasteResponse: {
+            drafts: components["schemas"]["MCPConnectionView"][];
+            error?: string;
+            ok: boolean;
+            refused: components["schemas"]["MCPPasteRefusal"][];
+        };
+        MCPProjects: string | string[];
+        MCPProjectsRequest: {
+            /** @description "all", or a list of project ids. */
+            projects: null | components["schemas"]["MCPProjects"];
+        };
+        MCPProjectsResponse: {
+            connection?: components["schemas"]["MCPConnectionView"];
+            error?: string;
+            ok: boolean;
+        };
+        MCPRealTool: {
+            description: string;
+            inputSchema: unknown;
+            remote: string;
+            tool: string;
+        };
+        MCPRenameRequest: {
+            /** @description The name that agents use. */
+            name: string;
+        };
+        MCPStoreStatus: {
+            broken: boolean;
+            unreadable: number;
+        };
+        MCPTool: {
+            description: string;
+            inputSchema: unknown;
+            name: string;
         };
         MarkAllNotificationsReadRequest: {
             /** @description Acknowledge exactly these notifications. Omit to acknowledge every unread notification; paginating clients should send the ids they actually rendered so later pages stay unread. */
@@ -12651,6 +13065,67 @@ export interface operations {
             };
         };
     };
+    setConnectorProjects: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Connector id, e.g. cloudflare. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MCPProjectsRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+        };
+    };
     testConnection: {
         parameters: {
             query?: never;
@@ -12739,7 +13214,10 @@ export interface operations {
     };
     listConnectionAgentTools: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description The calling session, for the project grant. */
+                sessionId?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -12835,6 +13313,44 @@ export interface operations {
             };
             /** @description Service Unavailable */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+        };
+    };
+    listConnectorProjects: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectorProjectsResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -13853,6 +14369,582 @@ export interface operations {
             };
             /** @description Bad Gateway */
             502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+        };
+    };
+    finishMCPOAuth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+        };
+    };
+    callMCPAgentTool: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MCPAgentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MCPAgentReply"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+        };
+    };
+    getMCPAgentIndex: {
+        parameters: {
+            query?: {
+                /** @description The calling session, for the project grant. */
+                sessionId?: string;
+                /** @description The index version that the caller has. */
+                known?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MCPAgentIndexResponse"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+        };
+    };
+    listMCPAgentConnections: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MCPAgentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MCPAgentReply"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+        };
+    };
+    listMCPAgentTools: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MCPAgentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MCPAgentReply"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+        };
+    };
+    checkMCPConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MCPCheckRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MCPCheckResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+        };
+    };
+    listMCPConnections: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MCPOverviewResponse"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+        };
+    };
+    removeMCPConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description MCP connection id, e.g. mcp_0123456789ab. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+        };
+    };
+    renameMCPConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description MCP connection id, e.g. mcp_0123456789ab. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MCPRenameRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MCPProjectsResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+        };
+    };
+    saveMCPCredentials: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description MCP connection id, e.g. mcp_0123456789ab. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MCPCredentialsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MCPCheckResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+        };
+    };
+    startMCPOAuth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description MCP connection id, e.g. mcp_0123456789ab. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["MCPOAuthStartRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MCPOAuthStartResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+        };
+    };
+    setMCPProjects: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description MCP connection id, e.g. mcp_0123456789ab. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MCPProjectsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MCPProjectsResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+        };
+    };
+    refreshMCPTools: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description MCP connection id, e.g. mcp_0123456789ab. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MCPCheckResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+        };
+    };
+    pasteMCPConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MCPPasteRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MCPPasteResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIError"];
+                };
+            };
+            /** @description Not Implemented */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };

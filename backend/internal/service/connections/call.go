@@ -29,6 +29,8 @@ type CallArgs struct {
 	Method string `json:"method,omitempty"`
 	Body   string `json:"body,omitempty"`
 	Fields string `json:"fields,omitempty"`
+	// SessionID is the calling session, for the project grant.
+	SessionID string `json:"sessionId,omitempty"`
 }
 
 type caller struct {
@@ -55,6 +57,11 @@ func (s *Service) Call(ctx context.Context, tool string, args CallArgs) (string,
 	c, ok := LookupTool(tool)
 	if !ok {
 		return "", ErrUnknownConnector
+	}
+	// The grant is checked at each call, so a grant that the owner removed
+	// refuses the next call at once.
+	if !s.allowedFor(ctx, c.ID, args.SessionID) {
+		return c.Name + " is not available in this project.", nil
 	}
 	if text := refusal(c.ID, args.Method, args.Path, args.Body); text != "" {
 		return text, nil

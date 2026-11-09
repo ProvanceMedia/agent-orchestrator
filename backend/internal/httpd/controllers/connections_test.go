@@ -51,7 +51,7 @@ func (f *fakeConnections) Disconnect(_ context.Context, id string) error {
 	return nil
 }
 
-func (f *fakeConnections) AgentTools(context.Context) []connections.AgentTool {
+func (f *fakeConnections) AgentTools(context.Context, string) []connections.AgentTool {
 	return []connections.AgentTool{{Name: "github_api", Description: "Call GitHub.", InputSchema: map[string]any{"type": "object"}}}
 }
 

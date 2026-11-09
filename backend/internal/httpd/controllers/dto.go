@@ -23,6 +23,7 @@ import (
 
 	"github.com/aoagents/agent-orchestrator/backend/internal/mobilebridge"
 	"github.com/aoagents/agent-orchestrator/backend/internal/service/connections"
+	"github.com/aoagents/agent-orchestrator/backend/internal/service/mcpconn"
 )
 
 // CreateReportRequest is the local caller-to-daemon report submission contract.
@@ -4105,9 +4106,93 @@ type CallConnectionRequest struct {
 	Method string `json:"method,omitempty" description:"HTTP method. Defaults to GET."`
 	Body   string `json:"body,omitempty" description:"Request body as a string."`
 	Fields string `json:"fields,omitempty" description:"Comma-separated fields to keep from each row of a list."`
+	// SessionID is self-asserted, as for the computer-use tools; the route is loopback only.
+	SessionID string `json:"sessionId,omitempty" description:"The calling session, for the project grant."`
+}
+
+// ConnectionAgentToolsQuery is the query of GET /api/v1/connections/agent-tools.
+type ConnectionAgentToolsQuery struct {
+	SessionID string `query:"sessionId" description:"The calling session, for the project grant."`
 }
 
 // CallConnectionResponse is the body of POST /api/v1/connections/call.
 type CallConnectionResponse struct {
 	Text string `json:"text" description:"The status line and the response body, as the agent reads it."`
+}
+
+// MCPOverviewResponse is the body of GET /api/v1/mcp/connections.
+type MCPOverviewResponse = mcpconn.Overview
+
+// MCPCheckRequest is the body of POST /api/v1/mcp/check.
+type MCPCheckRequest = mcpconn.CheckInput
+
+// MCPCheckResponse is the outcome of Check link, Save key and Refresh tools.
+type MCPCheckResponse = mcpconn.CheckResult
+
+// MCPPasteRequest is the body of POST /api/v1/mcp/paste.
+type MCPPasteRequest struct {
+	Text string `json:"text" description:"JSON with an mcpServers object. Only URLs and header names are kept."`
+}
+
+// MCPPasteResponse is the body of POST /api/v1/mcp/paste.
+type MCPPasteResponse = mcpconn.PasteResult
+
+// MCPCredentialsRequest is the body of PUT /api/v1/mcp/connections/{id}/credentials.
+type MCPCredentialsRequest = mcpconn.CredentialsInput
+
+// MCPOAuthStartRequest is the optional body of POST /api/v1/mcp/connections/{id}/oauth/start.
+type MCPOAuthStartRequest struct {
+	ClientID     string `json:"clientId,omitempty" description:"A client id that the owner typed, for a server with no client registration."`
+	ClientSecret string `json:"clientSecret,omitempty" description:"The secret of that client, if it has one."`
+}
+
+// MCPOAuthStartResponse is the body of POST /api/v1/mcp/connections/{id}/oauth/start.
+type MCPOAuthStartResponse = mcpconn.StartResult
+
+// MCPProjectsRequest is the body of the project-grant routes.
+type MCPProjectsRequest struct {
+	Projects *mcpconn.Projects `json:"projects" description:"\"all\", or a list of project ids."`
+}
+
+// MCPProjectsResponse is the answer of the project-grant and rename routes.
+type MCPProjectsResponse = mcpconn.ProjectsResult
+
+// MCPRenameRequest is the body of PATCH /api/v1/mcp/connections/{id}.
+type MCPRenameRequest struct {
+	Name string `json:"name" description:"The name that agents use."`
+}
+
+// MCPConnectionIDParam is the {id} path parameter of an MCP connection route.
+type MCPConnectionIDParam struct {
+	ID string `path:"id" description:"MCP connection id, e.g. mcp_0123456789ab."`
+}
+
+// ConnectorProjectsResponse is the body of GET /api/v1/connections/projects.
+type ConnectorProjectsResponse struct {
+	Projects map[string]mcpconn.Projects `json:"projects" description:"The project grant of each key-based service except GitHub."`
+}
+
+// MCPAgentIndexQuery is the query of GET /api/v1/mcp/agent/index.
+type MCPAgentIndexQuery struct {
+	SessionID string `query:"sessionId" description:"The calling session, for the project grant."`
+	Known     string `query:"known" description:"The index version that the caller has."`
+}
+
+// MCPAgentIndexResponse is the body of GET /api/v1/mcp/agent/index.
+type MCPAgentIndexResponse struct {
+	mcpconn.ToolIndex
+	Unchanged bool `json:"unchanged,omitempty" description:"True when the caller's version is current; then only the version is sent."`
+}
+
+// MCPAgentRequest is the body of the /api/v1/mcp/agent call routes.
+type MCPAgentRequest struct {
+	SessionID string `json:"sessionId,omitempty" description:"The calling session, for the project grant."`
+	Name      string `json:"name,omitempty" description:"The connection name."`
+	Tool      string `json:"tool,omitempty" description:"The remote tool name."`
+	Arguments any    `json:"arguments,omitempty" description:"The tool arguments, as an object."`
+}
+
+// MCPAgentReply is the answer of an agent call: a text for the agent, or a result.
+type MCPAgentReply struct {
+	Result any `json:"result"`
 }

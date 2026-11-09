@@ -495,13 +495,13 @@ func TestDisconnectRemovesKeyAndTool(t *testing.T) {
 	svc, store, _ := newTestService(t, ok(`{}`))
 	ctx := context.Background()
 	connect(t, svc, store, "resend", map[string]string{"key": "re_key_123456"})
-	if tools := svc.AgentTools(ctx); len(tools) != 1 || tools[0].Name != "resend_api" {
+	if tools := svc.AgentTools(ctx, ""); len(tools) != 1 || tools[0].Name != "resend_api" {
 		t.Fatalf("tools = %+v", tools)
 	}
 	if err := svc.Disconnect(ctx, "resend"); err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := store.items["resend"]; ok || len(svc.AgentTools(ctx)) != 0 {
+	if _, ok := store.items["resend"]; ok || len(svc.AgentTools(ctx, "")) != 0 {
 		t.Fatal("disconnect left the key or the tool")
 	}
 	text, _ := svc.Call(ctx, "resend_api", CallArgs{Path: "/domains"})
@@ -513,11 +513,11 @@ func TestDisconnectRemovesKeyAndTool(t *testing.T) {
 func TestPromptBlockNamesOnlyConnectedServices(t *testing.T) {
 	svc, store, _ := newTestService(t, ok(`{}`))
 	ctx := context.Background()
-	if block := svc.PromptBlock(ctx); block != "" {
+	if block := svc.PromptBlock(ctx, ""); block != "" {
 		t.Fatalf("block with nothing connected = %q", block)
 	}
 	connect(t, svc, store, "vercel", map[string]string{"key": "vercel-token-1"})
-	block := svc.PromptBlock(ctx)
+	block := svc.PromptBlock(ctx, "")
 	if !strings.Contains(block, "Vercel -> vercel_api") || strings.Contains(block, "netlify_api") {
 		t.Fatalf("block = %q", block)
 	}
@@ -541,5 +541,42 @@ func TestStoreErrorsStayErrors(t *testing.T) {
 	store.putErr = ErrStoreDenied
 	if _, err := svc.Connect(context.Background(), "openai", map[string]string{"key": "sk-1"}); !errors.Is(err, ErrStoreDenied) {
 		t.Fatalf("Connect = %v, want ErrStoreDenied", err)
+	}
+}
+
+func TestProjectGateHidesAndRefusesAConnector(t *testing.T) {
+	svc, store, rec := newTestService(t, ok(`{}`))
+	ctx := context.Background()
+	connect(t, svc, store, "stripe", map[string]string{"key": "sk_test_abcdef"})
+	connect(t, svc, store, "openai", map[string]string{"key": "sk-openai-abcdef"})
+	projects := map[string]string{"s-blog": "blog", "s-shop": "shop"}
+	svc.SetProjectGate(func(_ context.Context, sessionID string) string { return projects[sessionID] },
+		func(service, project string) bool { return service != "stripe" || project == "shop" })
+
+	names := func(sessionID string) []string {
+		var out []string
+		for _, tool := range svc.AgentTools(ctx, sessionID) {
+			out = append(out, tool.Name)
+		}
+		return out
+	}
+	if got := names("s-shop"); len(got) != 2 {
+		t.Fatalf("shop tools = %v", got)
+	}
+	if got := names("s-blog"); len(got) != 1 || got[0] != "openai_api" {
+		t.Fatalf("blog tools = %v", got)
+	}
+	text, err := svc.Call(ctx, "stripe_api", CallArgs{Path: "/v1/account", SessionID: "s-blog"})
+	if err != nil || text != "Stripe is not available in this project." || len(rec.requests) != 0 {
+		t.Fatalf("blog stripe call = %q, %v, requests %d", text, err, len(rec.requests))
+	}
+	if _, err := svc.Call(ctx, "stripe_api", CallArgs{Path: "/v1/account", SessionID: "s-shop"}); err != nil || len(rec.requests) != 1 {
+		t.Fatalf("shop stripe call: %v, requests %d", err, len(rec.requests))
+	}
+	if block := svc.PromptBlock(ctx, "blog"); strings.Contains(block, "stripe_api") || !strings.Contains(block, "openai_api") {
+		t.Fatalf("blog block = %q", block)
+	}
+	if block := svc.PromptBlock(ctx, "shop"); !strings.Contains(block, "API-key services only") || strings.Contains(block, "Nothing else") {
+		t.Fatalf("shop block = %q", block)
 	}
 }

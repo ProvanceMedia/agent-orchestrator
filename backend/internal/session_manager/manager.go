@@ -544,7 +544,7 @@ type Manager struct {
 	computerUse   func(context.Context) bool
 	// connectionsPrompt names the connected services; nil names none.
 	connectionsMu     sync.Mutex
-	connectionsPrompt func(context.Context) string
+	connectionsPrompt func(context.Context, string) string
 	// versionTelemetry receives version-move events; nil drops them.
 	versionTelemetryMu sync.Mutex
 	versionTelemetry   ports.EventSink
@@ -6091,7 +6091,7 @@ func (m *Manager) buildSystemPrompt(ctx context.Context, kind domain.SessionKind
 		cfg.AdditionalSections = append(cfg.AdditionalSections, computerUsePrompt(skillassets.Dir(m.dataDir)))
 	}
 	if chat {
-		if block := strings.TrimSpace(m.connectionsBlock(ctx)); block != "" {
+		if block := strings.TrimSpace(m.connectionsBlock(ctx, string(projectID))); block != "" {
 			cfg.AdditionalSections = append(cfg.AdditionalSections, block)
 		}
 	}

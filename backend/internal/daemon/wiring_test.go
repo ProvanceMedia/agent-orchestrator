@@ -1001,7 +1001,7 @@ func (*fakeSessionLifecycle) ResumeHarnessSessions(context.Context, []domain.Ses
 func (*fakeSessionLifecycle) SetVersionTelemetry(ports.EventSink)                                {}
 func (*fakeSessionLifecycle) SetVersionRefreshPolicy(func() sessionmanager.VersionRefreshPolicy) {}
 func (*fakeSessionLifecycle) SetComputerUseEnabled(func(context.Context) bool)                   {}
-func (*fakeSessionLifecycle) SetConnectionsPrompt(func(context.Context) string)                  {}
+func (*fakeSessionLifecycle) SetConnectionsPrompt(func(context.Context, string) string)          {}
 func (*fakeSessionLifecycle) RetryVersionMoves(context.Context) error                            { return nil }
 func (*fakeSessionLifecycle) ObserveChatVersionSwitch(domain.SessionID, string, string)          {}
 func (*fakeSessionLifecycle) MarkHarnessUpdated(context.Context, domain.AgentHarness, string, time.Time) error {
