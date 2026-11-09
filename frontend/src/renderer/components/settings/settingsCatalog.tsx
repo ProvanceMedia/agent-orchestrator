@@ -1,5 +1,5 @@
 import { BrowserIcon, type AppIcon } from "../icons";
-import { Activity, Bot, CircleHelp, CreditCard, Keyboard, MousePointerClick, RefreshCw, Server, Settings2, Smartphone, Users } from "lucide-react";
+import { Activity, Bot, CircleHelp, CreditCard, Keyboard, KeyRound, MousePointerClick, RefreshCw, Server, Settings2, Smartphone, Users } from "lucide-react";
 import { lazy, type ReactNode } from "react";
 import type { TFunction } from "i18next";
 import type { GlobalSettingsSection, HarnessDiagnosticsRequest } from "../../stores/ui-store";
@@ -9,6 +9,7 @@ import { BrowserDownloadsSection } from "./BrowserDownloadsSection";
 import { BrowserProfilesSection } from "./BrowserProfilesSection";
 import { CoderSettingsSection } from "./CoderSettingsSection";
 import { ComputerUseSection } from "./ComputerUseSection";
+import { ConnectionsSection } from "./ConnectionsSection";
 import { ConnectMobileContent } from "./ConnectMobileContent";
 import { GeneralSettingsSection } from "./GeneralSettingsSection";
 import { HarnessSettingsSection } from "./HarnessSettingsSection";
@@ -134,6 +135,12 @@ const globalSettingsCatalog: SettingsCatalogItem[] = [
 		icon: MousePointerClick,
 		label: (t) => t("settings.computerUse"),
 		render: (_t, titleHidden) => <ComputerUseSection titleHidden={titleHidden} />,
+	},
+	{
+		id: "connections",
+		icon: KeyRound,
+		label: (t) => t("settings.connections"),
+		render: (_t, titleHidden) => <ConnectionsSection titleHidden={titleHidden} />,
 	},
 	{
 		id: "coder",

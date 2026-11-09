@@ -39,6 +39,7 @@ export type GlobalSettingsSection =
 	| "shortcuts"
 	| "browserProfiles"
 	| "computerUse"
+	| "connections"
 	| "diagnostics"
 	| "updates"
 	| "help";

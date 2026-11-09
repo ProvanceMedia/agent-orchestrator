@@ -17,6 +17,7 @@ The fork changes these files. The git history on branch `feat/swarm-3-branding` 
 | Updates | The updater looks for releases in `ProvanceMedia/agent-orchestrator`, not in the upstream repository. | `frontend/forge.config.ts` |
 | Telemetry | The fork has no built-in PostHog key or Sentry address, so a packaged build sends no analytics or error reports. | `frontend/src/shared/posthog-config.ts`, `frontend/src/shared/sentry-config.ts` |
 | Tests | The tests expect the new name and telemetry defaults. | `frontend/forge.config.test.ts`, `frontend/src/main/sentry-main.test.ts`, `frontend/src/shared/fork-telemetry.test.ts` |
+| Connections | Settings > Connections keeps the API keys of 17 services in the macOS login keychain. Each connected service gives chat agents one `ao mcp` tool, such as `cloudflare_api`. The daemon adds the key to each call, so the agent never sees it. The catalogue and the GitHub refusal rules come from Swarm Online. The routes are loopback only. | `backend/internal/service/connections`, `backend/internal/adapters/keychain`, `backend/internal/httpd/controllers/connections.go`, `backend/internal/cli/mcp_connections.go`, `frontend/src/renderer/components/settings` |
 
 ## Not changed yet
 

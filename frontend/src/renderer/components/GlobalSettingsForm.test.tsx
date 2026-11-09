@@ -32,6 +32,11 @@ vi.mock("./settings/ComputerUseSection", () => ({
 	ComputerUseSection: () => <div data-testid="computer-use-section" />,
 }));
 
+// The real section reads the daemon's /connections route; ConnectionsSection.test covers it.
+vi.mock("./settings/ConnectionsSection", () => ({
+	ConnectionsSection: () => <div data-testid="connections-section" />,
+}));
+
 const {
 	getUpdate,
 	setUpdate,
