@@ -22,6 +22,7 @@ import (
 	"github.com/aoagents/agent-orchestrator/backend/internal/service/systeminstall"
 
 	"github.com/aoagents/agent-orchestrator/backend/internal/mobilebridge"
+	"github.com/aoagents/agent-orchestrator/backend/internal/service/connections"
 )
 
 // CreateReportRequest is the local caller-to-daemon report submission contract.
@@ -4044,4 +4045,69 @@ type SwitchSessionAgentAccountRequest struct {
 	// StopTurn cancels a turn in progress, for an agent stuck waiting on the old
 	// account's limit. Otherwise the move waits for the turn to finish.
 	StopTurn bool `json:"stopTurn,omitempty"`
+}
+
+// ConnectionResponse is one service in Settings > Connections. It never holds
+// a secret value.
+type ConnectionResponse struct {
+	ID          string              `json:"id" description:"Connector id, e.g. cloudflare."`
+	Name        string              `json:"name" description:"Display name of the service."`
+	Tool        string              `json:"tool" description:"Name of the agent tool that the connection gives, e.g. cloudflare_api."`
+	Blurb       string              `json:"blurb" description:"One line on what the connection unlocks."`
+	Tint        string              `json:"tint" description:"Card monogram colour as a hex value."`
+	KeyURL      string              `json:"keyUrl" description:"Where the user makes the key."`
+	Fields      []connections.Field `json:"fields" description:"Values that the user gives. A secret field is never sent back."`
+	Connected   bool                `json:"connected" description:"Whether a key is saved."`
+	Tail        string              `json:"tail,omitempty" description:"Last 4 characters of the saved key."`
+	Values      map[string]string   `json:"values,omitempty" description:"Saved values of the non-secret fields."`
+	ConnectedAt *time.Time          `json:"connectedAt,omitempty" description:"When the key was saved."`
+}
+
+// ListConnectionsResponse is the body of GET /api/v1/connections.
+type ListConnectionsResponse struct {
+	Available   bool                 `json:"available" description:"Whether this build can keep keys (macOS keychain)."`
+	Connections []ConnectionResponse `json:"connections"`
+}
+
+// ConnectConnectionRequest is the body of PUT /api/v1/connections/{id}.
+type ConnectConnectionRequest struct {
+	Values map[string]string `json:"values" description:"Field values by field key. A blank secret keeps the saved one."`
+}
+
+// ConnectionCheckResponse is the outcome of a key check, after a save or a test.
+type ConnectionCheckResponse struct {
+	OK         bool               `json:"ok" description:"Whether the service accepted the key."`
+	Detail     string             `json:"detail" description:"The service's reason when it rejected the key."`
+	Connection ConnectionResponse `json:"connection" description:"The connection's state after the check."`
+}
+
+// ConnectionIDParam is the {id} path parameter of a connection route.
+type ConnectionIDParam struct {
+	ID string `path:"id" description:"Connector id, e.g. cloudflare."`
+}
+
+// ConnectionAgentTool is one connection tool for `ao mcp`.
+type ConnectionAgentTool struct {
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	InputSchema map[string]any `json:"inputSchema"`
+}
+
+// ConnectionAgentToolsResponse is the body of GET /api/v1/connections/agent-tools.
+type ConnectionAgentToolsResponse struct {
+	Tools []ConnectionAgentTool `json:"tools"`
+}
+
+// CallConnectionRequest is the body of POST /api/v1/connections/call.
+type CallConnectionRequest struct {
+	Tool   string `json:"tool" description:"Agent tool name, e.g. cloudflare_api."`
+	Path   string `json:"path" description:"API path after the base URL, with any query string."`
+	Method string `json:"method,omitempty" description:"HTTP method. Defaults to GET."`
+	Body   string `json:"body,omitempty" description:"Request body as a string."`
+	Fields string `json:"fields,omitempty" description:"Comma-separated fields to keep from each row of a list."`
+}
+
+// CallConnectionResponse is the body of POST /api/v1/connections/call.
+type CallConnectionResponse struct {
+	Text string `json:"text" description:"The status line and the response body, as the agent reads it."`
 }

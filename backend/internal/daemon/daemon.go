@@ -30,6 +30,7 @@ import (
 	"github.com/aoagents/agent-orchestrator/backend/internal/adapters/chatdriver/persistenthost"
 	chatdriverregistry "github.com/aoagents/agent-orchestrator/backend/internal/adapters/chatdriver/registry"
 	"github.com/aoagents/agent-orchestrator/backend/internal/adapters/cuadriver"
+	"github.com/aoagents/agent-orchestrator/backend/internal/adapters/keychain"
 	"github.com/aoagents/agent-orchestrator/backend/internal/adapters/reviewer"
 	"github.com/aoagents/agent-orchestrator/backend/internal/adapters/runtime/runtimeselect"
 	"github.com/aoagents/agent-orchestrator/backend/internal/adapters/systemexec"
@@ -63,6 +64,7 @@ import (
 	browsersvc "github.com/aoagents/agent-orchestrator/backend/internal/service/browser"
 	chatsvc "github.com/aoagents/agent-orchestrator/backend/internal/service/chat"
 	"github.com/aoagents/agent-orchestrator/backend/internal/service/computeruse"
+	connectionssvc "github.com/aoagents/agent-orchestrator/backend/internal/service/connections"
 	cuesvc "github.com/aoagents/agent-orchestrator/backend/internal/service/cue"
 	devimportsvc "github.com/aoagents/agent-orchestrator/backend/internal/service/devimport"
 	fsbrowsersvc "github.com/aoagents/agent-orchestrator/backend/internal/service/fsbrowser"
@@ -814,6 +816,9 @@ func Run(buildVersion string) error {
 	sessMgr.SetVersionTelemetry(telemetrySink)
 	// "Let agents use this computer" gives new chat sessions the computer-use tools.
 	sessMgr.SetComputerUseEnabled(settingsSvc.ComputerUseEnabled)
+	// Settings > Connections: keys in the login keychain, one agent tool each.
+	connectionsSvc := connectionssvc.New(keychain.New(), cfg.DataDir)
+	sessMgr.SetConnectionsPrompt(connectionsSvc.PromptBlock)
 	sessMgr.SetVersionRefreshPolicy(func() sessionmanager.VersionRefreshPolicy {
 		return versionRefreshPolicy(ctx, cfg, settingsSvc)
 	})
@@ -1128,6 +1133,7 @@ func Run(buildVersion string) error {
 		SystemChecks:       systemChecks,
 		Installer:          systemInstall,
 		ComputerUse:        computerUse,
+		Connections:        connectionsSvc,
 		Sessions:           sessionSvc,
 		Automations:        automationSvc,
 		DesktopWorkspaces:  sessionSvc,

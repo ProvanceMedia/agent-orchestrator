@@ -19,6 +19,8 @@ type mcpState struct {
 	cuaLoaded bool
 	cuaTools  []map[string]any
 	cuaNames  map[string]bool
+	// connectionNames are the connection tools of the last list.
+	connectionNames map[string]bool
 }
 
 // cuaCallRequest, cuaImage, and cuaCallResponse mirror the daemon's

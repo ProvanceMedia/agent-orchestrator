@@ -15,8 +15,9 @@ import (
 )
 
 // `ao mcp` is the stdio MCP server AO passes to every chat session, so the
-// agent sees html_preview and html_render in its tool list, and the computer
-// use tools when the session has computer use (mcp_cua.go). The agent's
+// agent sees html_preview and html_render in its tool list, the computer use
+// tools when the session has computer use (mcp_cua.go), and one tool for each
+// service connected in Settings > Connections (mcp_connections.go). The agent's
 // harness spawns it outside the shell sandbox, so it reaches the loopback
 // daemon even when the agent's own shell commands cannot. Hand-written, and
 // only what these tools need: newline-delimited JSON-RPC 2.0, one request at
@@ -119,6 +120,7 @@ func (c *commandContext) handleMCP(ctx context.Context, state *mcpState, line []
 		resp.Result = map[string]any{}
 	case "tools/list":
 		tools := append(append([]map[string]any{}, mcpTools...), c.cuaTools(ctx, state)...)
+		tools = append(tools, c.connectionTools(ctx, state)...)
 		resp.Result = map[string]any{"tools": tools}
 	case "tools/call":
 		var p struct {
@@ -134,6 +136,10 @@ func (c *commandContext) handleMCP(ctx context.Context, state *mcpState, line []
 		default:
 			if c.cuaTools(ctx, state) != nil && state.cuaNames[p.Name] {
 				resp.Result = c.callCua(ctx, p.Name, p.Arguments)
+				break
+			}
+			if c.isConnectionTool(ctx, state, p.Name) {
+				resp.Result = c.callConnection(ctx, p.Name, p.Arguments)
 				break
 			}
 			resp.Error = &mcpError{Code: -32602, Message: fmt.Sprintf("unknown tool %q", p.Name)}

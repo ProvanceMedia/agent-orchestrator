@@ -127,6 +127,9 @@ func rendererOnlyArea(path string) string {
 			"/api/v1/computer-use",
 			"/api/v1/settings/computer-use",
 		}},
+		// A connection call spends the user's API keys, and the settings
+		// routes change them.
+		{"connections", []string{"/api/v1/connections"}},
 	} {
 		for _, prefix := range area.prefixes {
 			if path == prefix || strings.HasPrefix(path, prefix+"/") {

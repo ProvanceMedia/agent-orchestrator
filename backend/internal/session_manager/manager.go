@@ -542,6 +542,9 @@ type Manager struct {
 	// computerUse reports the "Let agents use this computer" setting; nil is off.
 	computerUseMu sync.Mutex
 	computerUse   func(context.Context) bool
+	// connectionsPrompt names the connected services; nil names none.
+	connectionsMu     sync.Mutex
+	connectionsPrompt func(context.Context) string
 	// versionTelemetry receives version-move events; nil drops them.
 	versionTelemetryMu sync.Mutex
 	versionTelemetry   ports.EventSink
@@ -6086,6 +6089,11 @@ func (m *Manager) buildSystemPrompt(ctx context.Context, kind domain.SessionKind
 	}
 	if chat && m.computerUseEnabled(ctx) {
 		cfg.AdditionalSections = append(cfg.AdditionalSections, computerUsePrompt(skillassets.Dir(m.dataDir)))
+	}
+	if chat {
+		if block := strings.TrimSpace(m.connectionsBlock(ctx)); block != "" {
+			cfg.AdditionalSections = append(cfg.AdditionalSections, block)
+		}
 	}
 	if artifactPrompt := strings.TrimSpace(m.artifactPrompt(sessionID, chat)); artifactPrompt != "" {
 		cfg.AdditionalSections = append(cfg.AdditionalSections, artifactPrompt)

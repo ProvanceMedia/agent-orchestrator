@@ -251,6 +251,20 @@ func TestComputerUseOriginBoundaryBlocksPreviewAndAllowsRenderers(t *testing.T) 
 			wantStatus: http.StatusForbidden,
 		},
 		{
+			name:       "preview cannot make a connection call",
+			method:     http.MethodPost,
+			path:       "/api/v1/connections/call",
+			origin:     preview,
+			wantStatus: http.StatusForbidden,
+		},
+		{
+			name:       "preview cannot list connections",
+			method:     http.MethodGet,
+			path:       "/api/v1/connections",
+			origin:     preview,
+			wantStatus: http.StatusForbidden,
+		},
+		{
 			name:       "preview cannot turn on agent computer use",
 			method:     http.MethodPatch,
 			path:       "/api/v1/settings/computer-use",

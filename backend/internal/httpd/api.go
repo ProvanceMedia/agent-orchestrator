@@ -84,6 +84,8 @@ type APIDeps struct {
 	Installer controllers.Installer
 	// ComputerUse is the Cua Driver integration behind Settings and the computer-use tools.
 	ComputerUse controllers.ComputerUse
+	// Connections is the key store and passthrough behind Settings > Connections.
+	Connections controllers.Connections
 	AgentAuth   controllers.AgentAuthService
 	// GitHub is the local GitHub PAT + repos surface.
 	GitHub controllers.GitHubPATService
@@ -159,6 +161,7 @@ type API struct {
 	telemetryID   *controllers.TelemetryIdentityController
 	systemInstall *controllers.SystemInstallController
 	computerUse   *controllers.ComputerUseController
+	connections   *controllers.ConnectionsController
 	agentAuth     *controllers.AgentAuthController
 	linkPreview   *controllers.LinkPreviewController
 	github        *controllers.GitHubController
@@ -223,6 +226,7 @@ func newAPIWithLogger(cfg config.Config, deps APIDeps, log *slog.Logger) *API {
 		telemetryID:   &controllers.TelemetryIdentityController{Source: deps.TelemetryIdentity, LifetimeSessions: deps.LifetimeSessions},
 		systemInstall: &controllers.SystemInstallController{Installer: deps.Installer},
 		computerUse:   &controllers.ComputerUseController{Svc: deps.ComputerUse},
+		connections:   &controllers.ConnectionsController{Svc: deps.Connections},
 		agentAuth:     &controllers.AgentAuthController{Svc: deps.AgentAuth},
 		linkPreview:   &controllers.LinkPreviewController{Svc: deps.LinkPreview},
 		github:        &controllers.GitHubController{Svc: deps.GitHub},
@@ -291,6 +295,13 @@ func (a *API) Register(root chi.Router) {
 						computerUse.ServeHTTP(w, req)
 						return
 					}
+					// A connection call or key check waits up to 60 s for the
+					// service, and a keychain read can first wait for the user
+					// to answer a prompt.
+					if connectionsSlowRoute(req) {
+						computerUse.ServeHTTP(w, req)
+						return
+					}
 					// A spawn, an orchestrator start or a restore runs the project's
 					// Setup inside the request, and a Setup step may take far longer
 					// than one REST request: the operation extends this budget by its
@@ -346,6 +357,7 @@ func (a *API) Register(root chi.Router) {
 			a.telemetryID.Register(r)
 			a.systemInstall.Register(r)
 			a.computerUse.Register(r)
+			a.connections.Register(r)
 			a.agentAuth.Register(r)
 			a.linkPreview.Register(r)
 			a.github.Register(r)
@@ -437,4 +449,16 @@ func agentBrowserURL(raw string) *url.URL {
 func userMessageRecorder(sessions any) controllers.UserMessageRecorder {
 	recorder, _ := sessions.(controllers.UserMessageRecorder)
 	return recorder
+}
+
+// connectionsSlowRoute reports a connection route that calls the service or
+// reads the keychain inside the request.
+func connectionsSlowRoute(req *http.Request) bool {
+	switch chi.RouteContext(req.Context()).RoutePattern() {
+	case "/api/v1/connections/call", "/api/v1/connections/{id}/test":
+		return true
+	case "/api/v1/connections/{id}":
+		return req.Method == http.MethodPut
+	}
+	return false
 }

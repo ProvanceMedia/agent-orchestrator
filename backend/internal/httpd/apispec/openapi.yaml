@@ -2990,6 +2990,287 @@ paths:
         background service, and macOS permissions
       tags:
       - computer-use
+  /api/v1/connections:
+    get:
+      operationId: listConnections
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListConnectionsResponse'
+          description: OK
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Internal Server Error
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Implemented
+      summary: List the services that Swarm can hold an API key for, and which ones
+        are connected; no secret is returned
+      tags:
+      - connections
+  /api/v1/connections/{id}:
+    delete:
+      operationId: disconnectConnection
+      parameters:
+      - description: Connector id, e.g. cloudflare.
+        in: path
+        name: id
+        required: true
+        schema:
+          description: Connector id, e.g. cloudflare.
+          type: string
+      responses:
+        "204":
+          description: No Content
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Internal Server Error
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Implemented
+        "503":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Service Unavailable
+      summary: Remove a service's key from the keychain
+      tags:
+      - connections
+    put:
+      operationId: connectConnection
+      parameters:
+      - description: Connector id, e.g. cloudflare.
+        in: path
+        name: id
+        required: true
+        schema:
+          description: Connector id, e.g. cloudflare.
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectConnectionRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionCheckResponse'
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Bad Request
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Found
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Conflict
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Internal Server Error
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Implemented
+        "503":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Service Unavailable
+      summary: Save a service's key in the macOS keychain and prove it with one cheap
+        call; a failed check puts the old key back
+      tags:
+      - connections
+  /api/v1/connections/{id}/test:
+    post:
+      operationId: testConnection
+      parameters:
+      - description: Connector id, e.g. cloudflare.
+        in: path
+        name: id
+        required: true
+        schema:
+          description: Connector id, e.g. cloudflare.
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionCheckResponse'
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Bad Request
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Found
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Conflict
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Internal Server Error
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Implemented
+        "503":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Service Unavailable
+      summary: Prove a saved key again with one cheap call
+      tags:
+      - connections
+  /api/v1/connections/agent-tools:
+    get:
+      operationId: listConnectionAgentTools
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionAgentToolsResponse'
+          description: OK
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Implemented
+      summary: List the agent tools of the connected services, with their input schemas,
+        for the ao tool server
+      tags:
+      - connections
+  /api/v1/connections/call:
+    post:
+      operationId: callConnection
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallConnectionRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallConnectionResponse'
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Bad Request
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Internal Server Error
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Implemented
+        "503":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Service Unavailable
+      summary: Make one API call for an agent with the saved key attached, and return
+        the text the agent reads
+      tags:
+      - connections
   /api/v1/conversations/search:
     get:
       operationId: searchConversations
@@ -15089,6 +15370,35 @@ components:
       - transport
       - target
       type: object
+    CallConnectionRequest:
+      properties:
+        body:
+          description: Request body as a string.
+          type: string
+        fields:
+          description: Comma-separated fields to keep from each row of a list.
+          type: string
+        method:
+          description: HTTP method. Defaults to GET.
+          type: string
+        path:
+          description: API path after the base URL, with any query string.
+          type: string
+        tool:
+          description: Agent tool name, e.g. cloudflare_api.
+          type: string
+      required:
+      - tool
+      - path
+      type: object
+    CallConnectionResponse:
+      properties:
+        text:
+          description: The status line and the response body, as the agent reads it.
+          type: string
+      required:
+      - text
+      type: object
     CancelReviewResponse:
       properties:
         reviewerHandleId:
@@ -16079,6 +16389,127 @@ components:
       - updateAvailable
       - daemon
       - imageDirectory
+      type: object
+    ConnectConnectionRequest:
+      properties:
+        values:
+          additionalProperties:
+            type: string
+          description: Field values by field key. A blank secret keeps the saved one.
+          type:
+          - object
+          - "null"
+      required:
+      - values
+      type: object
+    ConnectionAgentTool:
+      properties:
+        description:
+          type: string
+        inputSchema:
+          additionalProperties: {}
+          type:
+          - object
+          - "null"
+        name:
+          type: string
+      required:
+      - name
+      - description
+      - inputSchema
+      type: object
+    ConnectionAgentToolsResponse:
+      properties:
+        tools:
+          items:
+            $ref: '#/components/schemas/ConnectionAgentTool'
+          type: array
+      required:
+      - tools
+      type: object
+    ConnectionCheckResponse:
+      properties:
+        connection:
+          $ref: '#/components/schemas/ConnectionResponse'
+          description: The connection's state after the check.
+        detail:
+          description: The service's reason when it rejected the key.
+          type: string
+        ok:
+          description: Whether the service accepted the key.
+          type: boolean
+      required:
+      - ok
+      - detail
+      - connection
+      type: object
+    ConnectionField:
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        optional:
+          type: boolean
+        placeholder:
+          type: string
+        secret:
+          type: boolean
+      required:
+      - key
+      - label
+      type: object
+    ConnectionResponse:
+      properties:
+        blurb:
+          description: One line on what the connection unlocks.
+          type: string
+        connected:
+          description: Whether a key is saved.
+          type: boolean
+        connectedAt:
+          description: When the key was saved.
+          format: date-time
+          type:
+          - "null"
+          - string
+        fields:
+          description: Values that the user gives. A secret field is never sent back.
+          items:
+            $ref: '#/components/schemas/ConnectionField'
+          type: array
+        id:
+          description: Connector id, e.g. cloudflare.
+          type: string
+        keyUrl:
+          description: Where the user makes the key.
+          type: string
+        name:
+          description: Display name of the service.
+          type: string
+        tail:
+          description: Last 4 characters of the saved key.
+          type: string
+        tint:
+          description: Card monogram colour as a hex value.
+          type: string
+        tool:
+          description: Name of the agent tool that the connection gives, e.g. cloudflare_api.
+          type: string
+        values:
+          additionalProperties:
+            type: string
+          description: Saved values of the non-secret fields.
+          type: object
+      required:
+      - id
+      - name
+      - tool
+      - blurb
+      - tint
+      - keyUrl
+      - fields
+      - connected
       type: object
     ConsumeAgentAccountResetCreditRequest:
       properties:
@@ -18563,6 +18994,19 @@ components:
           type: array
       required:
       - sessions
+      type: object
+    ListConnectionsResponse:
+      properties:
+        available:
+          description: Whether this build can keep keys (macOS keychain).
+          type: boolean
+        connections:
+          items:
+            $ref: '#/components/schemas/ConnectionResponse'
+          type: array
+      required:
+      - available
+      - connections
       type: object
     ListCuesResponse:
       properties:
@@ -23528,6 +23972,9 @@ tags:
 - description: Cua Driver computer-use integration behind Settings and the agents'
     computer-use tools (loopback only)
   name: computer-use
+- description: API keys of third-party services in the macOS keychain, and the agents'
+    passthrough calls (loopback only)
+  name: connections
 - description: Server-side unfurl of external links for the CSP-locked renderer
   name: link-preview
 - description: Local GitHub personal access token storage and repository listing
