@@ -27,8 +27,8 @@ const (
 )
 
 var (
-	errDrainQuiescenceUnverified = errors.New("Swarm could not verify that the terminal was idle after the latest input. The source interface was left untouched; retry after the terminal settles")
-	errDrainDecisionPending      = errors.New("Swarm found a provider decision waiting in Terminal. The source interface was left untouched; answer it in Terminal and retry, or choose Cancel request and switch")
+	errDrainQuiescenceUnverified = errors.New("Swarm could not verify that the terminal was idle after the latest input. The source interface was left untouched; retry after the terminal settles")                //nolint:staticcheck // The product name starts this sentence, which the user reads.
+	errDrainDecisionPending      = errors.New("Swarm found a provider decision waiting in Terminal. The source interface was left untouched; answer it in Terminal and retry, or choose Cancel request and switch") //nolint:staticcheck // The product name starts this sentence, which the user reads.
 )
 
 // interfaceTransitionStore is optional so the existing narrow Manager Store

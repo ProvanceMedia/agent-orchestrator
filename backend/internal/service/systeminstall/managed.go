@@ -247,7 +247,7 @@ func (s *Service) runManagedInstall(ctx context.Context, plan Plan, baseline *in
 		}
 	}
 	if cli == "" {
-		return errors.New("Swarm could not tell which executable sessions run, so it cannot install a managed copy")
+		return errors.New("Swarm could not tell which executable sessions run, so it cannot install a managed copy") //nolint:staticcheck // The product name starts this sentence, which the user reads.
 	}
 	targetDir := s.managedTargetDir(plan.Target)
 	versionsDir := filepath.Join(targetDir, "versions")

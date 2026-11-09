@@ -356,7 +356,7 @@ mv "$tmp" "$dest"
 func droidDownloadCommand(dir, pin, goos, goarch string) ([]string, error) {
 	version := strings.TrimPrefix(pin, "v")
 	if version == "" {
-		return nil, errors.New("Swarm needs the release to install, but no newer Droid release is known")
+		return nil, errors.New("Swarm needs the release to install, but no newer Droid release is known") //nolint:staticcheck // The product name starts this sentence, which the user reads.
 	}
 	var arch string
 	switch goarch {

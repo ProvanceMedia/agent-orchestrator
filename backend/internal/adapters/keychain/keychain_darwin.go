@@ -1,6 +1,6 @@
 //go:build darwin && cgo
 
-package keychain
+package keychain //nolint:gocritic // cgo makes the linter see duplicate imports.
 
 /*
 #cgo LDFLAGS: -framework CoreFoundation -framework Security
@@ -71,11 +71,11 @@ static OSStatus aoDelete(const char *service, const char *account) {
 	return status;
 }
 */
-import "C"
+import "C" //nolint:gocritic // cgo makes the linter see duplicate imports.
 
 import (
 	"fmt"
-	"unsafe"
+	"unsafe" //nolint:gocritic // cgo makes the linter see duplicate imports.
 
 	"github.com/aoagents/agent-orchestrator/backend/internal/service/connections"
 )
@@ -108,7 +108,7 @@ func get(service, account string) ([]byte, error) {
 	defer C.free(unsafe.Pointer(ca))
 	var out unsafe.Pointer
 	var n C.long
-	if err := statusError("read", C.aoGet(cs, ca, &out, &n)); err != nil {
+	if err := statusError("read", C.aoGet(cs, ca, &out, &n)); err != nil { //nolint:gocritic // cgo expands this call; the source has no duplicate expression.
 		return nil, err
 	}
 	defer C.free(out)
