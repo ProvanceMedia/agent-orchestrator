@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { TFunction } from "i18next";
 import { Check, ChevronDown, CircleAlert, ExternalLink, LoaderCircle } from "lucide-react";
-import { useId, useRef, useState, type CSSProperties, type FormEvent } from "react";
+import { useId, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import type { components } from "../../../api/schema";
 import { apiClient, apiErrorCode, apiErrorMessage } from "../../lib/api-client";
@@ -13,16 +13,27 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Pressable } from "../ui/pressable";
+import { ConnectionMonogram } from "./ConnectionMonogram";
+import { McpConnectionsSection } from "./McpConnectionsSection";
+import { ProjectsControl } from "./ProjectsControl";
 import { SettingsSection } from "./SettingsSection";
 
 type Connection = components["schemas"]["ConnectionResponse"];
 type ConnectionCheck = components["schemas"]["ConnectionCheckResponse"];
 type ConnectionList = components["schemas"]["ListConnectionsResponse"];
+type ConnectorProjects = components["schemas"]["ConnectorProjectsResponse"];
 
 export const connectionsQueryKey = ["connections"] as const;
+export const connectorProjectsQueryKey = ["connection-projects"] as const;
 
 async function fetchConnections(): Promise<ConnectionList> {
 	const { data, error } = await apiClient.GET("/api/v1/connections");
+	if (error || !data) throw apiErrorException(error);
+	return data;
+}
+
+async function fetchConnectorProjects(): Promise<ConnectorProjects> {
+	const { data, error } = await apiClient.GET("/api/v1/connections/projects");
 	if (error || !data) throw apiErrorException(error);
 	return data;
 }
@@ -33,6 +44,7 @@ async function fetchConnections(): Promise<ConnectionList> {
  * and the daemon attaches the key to each call, so no agent sees the key.
  * The daemon never sends a secret back: a row knows only whether a key is
  * saved, its last four characters, and the saved non-secret values.
+ * The remote MCP servers follow in their own section.
  */
 export function ConnectionsSection({ titleHidden }: { titleHidden?: boolean }) {
 	const { t } = useTranslation();
@@ -47,27 +59,30 @@ export function ConnectionsSection({ titleHidden }: { titleHidden?: boolean }) {
 	const available = list.data?.available ?? false;
 
 	return (
-		<SettingsSection title={t("settings.connections")} sectionId="connections" titleHidden={titleHidden}>
-			<p className="px-(--settings-row-inset) pb-1.5 text-pretty text-control leading-4 text-settings-muted">{t("settings.connections.intro")}</p>
-			<div className="settings-grouped-rows flex w-full flex-col">
-				{list.data && !available ? (
-					<p role="status" className="settings-content-row flex items-start gap-2 text-control leading-5 text-settings-label">
-						<CircleAlert className="mt-0.5 size-3.5 shrink-0 text-settings-muted" aria-hidden="true" />
-						{t("settings.connections.unavailable")}
-					</p>
-				) : null}
-				{list.isPending ? (
-					<p role="status" className="settings-content-row flex items-center gap-2 text-control text-settings-muted">
-						<LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />
-						{t("common.loading")}
-					</p>
-				) : null}
-				{list.isError ? (
-					<p role="alert" className="settings-content-row text-xs text-error">{list.error.message || t("settings.connections.loadFailed")}</p>
-				) : null}
-				{rows.map((connection) => <ConnectionRow key={connection.id} connection={connection} available={available} />)}
-			</div>
-		</SettingsSection>
+		<>
+			<SettingsSection title={t("settings.connections")} sectionId="connections" titleHidden={titleHidden}>
+				<p className="px-(--settings-row-inset) pb-1.5 text-pretty text-control leading-4 text-settings-muted">{t("settings.connections.intro")}</p>
+				<div className="settings-grouped-rows flex w-full flex-col">
+					{list.data && !available ? (
+						<p role="status" className="settings-content-row flex items-start gap-2 text-control leading-5 text-settings-label">
+							<CircleAlert className="mt-0.5 size-3.5 shrink-0 text-settings-muted" aria-hidden="true" />
+							{t("settings.connections.unavailable")}
+						</p>
+					) : null}
+					{list.isPending ? (
+						<p role="status" className="settings-content-row flex items-center gap-2 text-control text-settings-muted">
+							<LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />
+							{t("common.loading")}
+						</p>
+					) : null}
+					{list.isError ? (
+						<p role="alert" className="settings-content-row text-xs text-error">{list.error.message || t("settings.connections.loadFailed")}</p>
+					) : null}
+					{rows.map((connection) => <ConnectionRow key={connection.id} connection={connection} available={available} />)}
+				</div>
+			</SettingsSection>
+			<McpConnectionsSection />
+		</>
 	);
 }
 
@@ -187,7 +202,7 @@ function ConnectionRow({ connection, available }: { connection: Connection; avai
 				aria-controls={detailsId}
 				onClick={() => setExpanded((open) => !open)}
 			>
-				<Monogram name={connection.name} tint={connection.tint} />
+				<ConnectionMonogram name={connection.name} tint={connection.tint} />
 				<span className="min-w-0 flex-1">
 					<span className="block truncate text-sm leading-5 text-settings-label">{connection.name}</span>
 					<span className="mt-0.5 block text-pretty text-control leading-4 text-settings-muted">{connection.blurb}</span>
@@ -302,6 +317,8 @@ function ConnectionRow({ connection, available }: { connection: Connection; avai
 						</p>
 					) : null}
 				</form>
+				{/* GitHub stays available to every project. */}
+				{connected && connection.id !== "github" ? <ConnectorProjectsControl connection={connection} available={available} /> : null}
 			</div>
 			{confirming ? (
 				<ConfirmDialog
@@ -350,25 +367,48 @@ function RowStatus({ connection, checking }: { connection: Connection; checking:
 	);
 }
 
-const HEX_COLOR = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
-
 /**
- * The service's initial on a faint wash of its colour. The letter mixes the
- * colour with the theme's foreground, so a near-white tint (GitHub, Vercel)
- * still reads on a light card.
+ * Which projects can use a connected key-based service. The daemon gives the
+ * tool only to sessions in these projects.
  */
-function Monogram({ name, tint }: { name: string; tint: string }) {
-	const style: CSSProperties | undefined = HEX_COLOR.test(tint)
-		? { backgroundColor: `color-mix(in oklch, ${tint} 18%, transparent)`, color: `color-mix(in oklch, ${tint} 55%, var(--foreground))` }
-		: undefined;
+function ConnectorProjectsControl({ connection, available }: { connection: Connection; available: boolean }) {
+	const { t } = useTranslation();
+	const queryClient = useQueryClient();
+	const grants = useQuery({ queryKey: connectorProjectsQueryKey, queryFn: fetchConnectorProjects });
+	const frame = "pr-(--settings-row-inset) pb-3 pl-[calc(var(--settings-row-inset)+2.5rem)]";
+	if (grants.isPending) return null;
+	if (grants.isError) {
+		return (
+			<p role="alert" className={cn(frame, "flex items-start gap-2 text-control leading-5 text-error")}>
+				<CircleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+				{grants.error.message || t("settings.connections.projects.loadFailed")}
+			</p>
+		);
+	}
+	const value = grants.data.projects?.[connection.id] ?? "all";
 	return (
-		<span
-			aria-hidden="true"
-			style={style}
-			className="flex size-7 shrink-0 items-center justify-center rounded-md bg-interactive-hover text-control leading-none font-semibold text-settings-muted"
-		>
-			{name.trim().charAt(0).toLocaleUpperCase()}
-		</span>
+		<ProjectsControl
+			className={frame}
+			value={value}
+			disabled={!available}
+			onSave={async (projects) => {
+				try {
+					const { error, response } = await apiClient.PUT("/api/v1/connections/{id}/projects", {
+						params: { path: { id: connection.id } },
+						body: { projects },
+					});
+					// A 204 has no body; CONNECTOR_PROJECTS_INVALID carries a message the owner can read.
+					if (error !== undefined || !response.ok) return apiErrorMessage(error, t("settings.connections.projects.failed"));
+				} catch {
+					return t("settings.mcp.offline");
+				}
+				queryClient.setQueryData<ConnectorProjects>(connectorProjectsQueryKey, (current) => current && {
+					projects: { ...current.projects, [connection.id]: projects },
+				});
+				void queryClient.invalidateQueries({ queryKey: connectorProjectsQueryKey });
+				return null;
+			}}
+		/>
 	);
 }
 

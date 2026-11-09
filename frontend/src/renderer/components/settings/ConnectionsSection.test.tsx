@@ -16,6 +16,11 @@ vi.mock("../../lib/api-client", () => ({
 
 vi.mock("../../lib/bridge", () => ({ aoBridge: { app: bridgeMocks } }));
 
+// The MCP servers below the services have their own suite (McpConnectionsSection.test).
+vi.mock("./McpConnectionsSection", () => ({
+	McpConnectionsSection: () => <div data-testid="mcp-section" />,
+}));
+
 import { ConnectionsSection } from "./ConnectionsSection";
 
 type Connection = Record<string, unknown> & { id: string; name: string; connected: boolean };
@@ -47,9 +52,30 @@ const posthog: Connection = {
 	connectedAt: "2026-11-01T10:00:00Z",
 };
 
-function daemon(list: () => { available: boolean; connections: Connection[] }) {
+const github: Connection = {
+	id: "github",
+	name: "GitHub",
+	tool: "github_api",
+	blurb: "Repos, issues, pull requests, Actions, releases.",
+	tint: "#e6edf3",
+	keyUrl: "https://github.com/settings/tokens",
+	fields: [{ key: "key", label: "Personal access token", placeholder: "ghp_…", secret: true }],
+	connected: true,
+	tail: "9f2c",
+	values: {},
+};
+
+function daemon(
+	list: () => { available: boolean; connections: Connection[] },
+	grants: () => Record<string, unknown> = () => ({ cloudflare: "all", posthog: "all" }),
+) {
 	apiMocks.get.mockImplementation(async (path: string) => {
 		if (path === "/api/v1/connections") return { data: list(), error: undefined };
+		if (path === "/api/v1/connections/projects") return { data: { projects: grants() }, error: undefined };
+		// The project list of the project control comes with the MCP overview.
+		if (path === "/api/v1/mcp/connections") {
+			return { data: { available: true, connections: [], store: { broken: false, unreadable: 0 }, apps: [], projects: ["api", "web"] }, error: undefined };
+		}
 		return { data: undefined, error: { message: `unexpected ${path}` } };
 	});
 }
@@ -207,6 +233,67 @@ describe("ConnectionsSection", () => {
 		await userEvent.click(within(row).getByRole("button", { name: "Get a key" }));
 
 		expect(bridgeMocks.openExternal).toHaveBeenCalledWith("https://dash.cloudflare.com/profile/api-tokens");
+	});
+
+	it("shows the MCP servers below the services", async () => {
+		daemon(() => ({ available: true, connections: [cloudflare] }));
+		renderSection();
+
+		expect(await screen.findByTestId("mcp-section")).toBeInTheDocument();
+	});
+
+	it("limits a connected service to the projects that the owner picks", async () => {
+		let grants: Record<string, unknown> = { cloudflare: "all", posthog: "all" };
+		daemon(() => ({ available: true, connections: [posthog] }), () => grants);
+		apiMocks.put.mockImplementation(async (_path: string, init: { body: { projects: unknown } }) => {
+			grants = { ...grants, posthog: init.body.projects };
+			return { data: undefined, error: undefined, response: { ok: true, status: 204 } };
+		});
+		renderSection();
+
+		const row = await openRow("PostHog");
+		const control = await within(row).findByRole("group", { name: "Which projects can use this?" });
+		expect(within(control).getByRole("radio", { name: "All projects" })).toBeChecked();
+		const save = within(control).getByRole("button", { name: "Save projects" });
+		expect(save).toBeDisabled();
+		await userEvent.click(within(control).getByRole("radio", { name: "Only these projects" }));
+		await userEvent.click(within(control).getByRole("checkbox", { name: "web" }));
+		await userEvent.click(save);
+
+		expect(apiMocks.put).toHaveBeenCalledWith("/api/v1/connections/{id}/projects", {
+			params: { path: { id: "posthog" } },
+			body: { projects: ["web"] },
+		});
+		expect(await within(control).findByText("Saved.")).toBeInTheDocument();
+	});
+
+	it("shows the daemon's reason when it refuses the projects", async () => {
+		daemon(() => ({ available: true, connections: [posthog] }));
+		apiMocks.put.mockResolvedValue({
+			data: undefined,
+			error: { code: "CONNECTOR_PROJECTS_INVALID", message: "A chosen project is not a Swarm project." },
+			response: { ok: false, status: 400 },
+		});
+		renderSection();
+
+		const row = await openRow("PostHog");
+		const control = await within(row).findByRole("group", { name: "Which projects can use this?" });
+		await userEvent.click(within(control).getByRole("radio", { name: "Only these projects" }));
+		await userEvent.click(within(control).getByRole("checkbox", { name: "api" }));
+		await userEvent.click(within(control).getByRole("button", { name: "Save projects" }));
+
+		expect(await within(control).findByRole("alert")).toHaveTextContent("A chosen project is not a Swarm project.");
+	});
+
+	it("offers no project choice for GitHub or for a service that is not connected", async () => {
+		daemon(() => ({ available: true, connections: [github, cloudflare] }));
+		renderSection();
+
+		const githubRow = await openRow("GitHub");
+		const cloudflareRow = await openRow("Cloudflare");
+		await waitFor(() => expect(apiMocks.get).toHaveBeenCalledWith("/api/v1/connections"));
+		expect(within(githubRow).queryByRole("group", { name: "Which projects can use this?" })).not.toBeInTheDocument();
+		expect(within(cloudflareRow).queryByRole("group", { name: "Which projects can use this?" })).not.toBeInTheDocument();
 	});
 
 	it("says so and disables the forms when this build cannot keep keys", async () => {

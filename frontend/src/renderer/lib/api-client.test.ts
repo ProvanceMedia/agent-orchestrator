@@ -328,6 +328,18 @@ describe("normalizeApiOperation", () => {
 		expect(normalizeApiOperation("GET", "/api/v1/agents/auth-plans")).toBe("GET /api/v1/agents/auth-plans");
 	});
 
+	it("keeps MCP connection and connector ids out of the reported operation", () => {
+		expect(normalizeApiOperation("PUT", "/api/v1/mcp/connections/mcp_0123456789ab/credentials")).toBe(
+			"PUT /api/v1/mcp/connections/:id/credentials",
+		);
+		expect(normalizeApiOperation("POST", "/api/v1/mcp/connections/mcp_0123456789ab/oauth/start")).toBe(
+			"POST /api/v1/mcp/connections/:id/oauth/start",
+		);
+		expect(normalizeApiOperation("DELETE", "/api/v1/mcp/connections/mcp_0123456789ab")).toBe("DELETE /api/v1/mcp/connections/:id");
+		expect(normalizeApiOperation("GET", "/api/v1/connections/projects")).toBe("GET /api/v1/connections/projects");
+		expect(normalizeApiOperation("PUT", "/api/v1/connections/cloudflare/projects")).toBe("PUT /api/v1/connections/:id/projects");
+	});
+
 	it("normalizes agent ids in authentication routes", () => {
 		expect(normalizeApiOperation("POST", "/api/v1/agents/claude-code/auth")).toBe(
 			"POST /api/v1/agents/:id/auth",
