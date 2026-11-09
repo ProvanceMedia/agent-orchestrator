@@ -1129,8 +1129,9 @@ func mcpConnectionsOperations() []operation {
 			summary: "connection_call: call one remote tool with the credential added and secrets removed from the result",
 			reqBody: controllers.MCPAgentRequest{}, resps: ok(controllers.MCPAgentReply{})},
 		{method: http.MethodGet, path: "/api/v1/mcp-oauth/callback", id: "finishMCPOAuth", tag: "connections",
-			summary: "The browser's redirect back from an MCP sign-in server; answers an HTML page",
-			resps:   []respUnit{{http.StatusOK, nil}, {http.StatusBadRequest, nil}, {http.StatusNotImplemented, envelope.APIError{}}}},
+			summary:      "The browser's redirect back from an MCP sign-in server; answers an HTML page",
+			resps:        []respUnit{{http.StatusOK, ""}, {http.StatusBadRequest, ""}, {http.StatusNotImplemented, envelope.APIError{}}},
+			contentTypes: map[int]string{http.StatusOK: "text/html", http.StatusBadRequest: "text/html"}},
 	}
 }
 

@@ -4109,8 +4109,16 @@ paths:
       operationId: finishMCPOAuth
       responses:
         "200":
+          content:
+            text/html:
+              schema:
+                type: string
           description: OK
         "400":
+          content:
+            text/html:
+              schema:
+                type: string
           description: Bad Request
         "501":
           content:
