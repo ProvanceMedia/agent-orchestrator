@@ -411,3 +411,49 @@ func TestBuildSystemPrompt_WorkerNativeReviewFollowsProjectPolicy(t *testing.T) 
 		t.Fatalf("a project with no remote has no PRs to review:\n%s", local)
 	}
 }
+
+func TestBuildSystemPrompt_OrchestratorAsksRunScopeOnce(t *testing.T) {
+	withRepo := buildSystemPromptText(systemPromptConfig{
+		Role:    sessionPromptRoleOrchestrator,
+		Project: promptProject{ID: "mer", Name: "Mercury", Repo: "https://github.com/acme/mercury"},
+	})
+	for _, want := range []string{
+		"## Run Scope",
+		"ask the human one question before you spawn the worker",
+		"1. All the way:",
+		"2. Stop at the PR:",
+		"If the human's request already says how far to go, do not ask.",
+		"Ask once per task. After the answer, do not ask again at each step",
+		"If the human does not answer the question, stop at the PR.",
+		"`ao pr merge <number> --url <pr-url> --expected-head-sha <approved-head-sha>`",
+		"`gh pr merge <number> --merge --match-head-commit <head-sha>`",
+		"every CI check on that head passed",
+		"They never extend what the human approved.",
+		"Never work around it.",
+		"Do not revert, force-push or rewrite history without the human's approval.",
+		"That instruction replaces the earlier answer.",
+		"do what the run scope that the human chose says",
+	} {
+		if !strings.Contains(withRepo, want) {
+			t.Fatalf("orchestrator prompt missing %q:\n%s", want, withRepo)
+		}
+	}
+	if strings.Contains(withRepo, "Do not merge unless explicitly asked") {
+		t.Fatal("orchestrator prompt still refuses to merge without a request at each step")
+	}
+
+	noRepo := buildSystemPromptText(systemPromptConfig{
+		Role:    sessionPromptRoleOrchestrator,
+		Project: promptProject{ID: "mer", Name: "Mercury"},
+	})
+	if strings.Contains(noRepo, "## Run Scope") {
+		t.Fatal("a project with no remote has no PRs, so it needs no run scope")
+	}
+	worker := buildSystemPromptText(systemPromptConfig{
+		Role:    sessionPromptRoleWorker,
+		Project: promptProject{ID: "mer", Name: "Mercury", Repo: "https://github.com/acme/mercury"},
+	})
+	if strings.Contains(worker, "## Run Scope") {
+		t.Fatal("workers must not get the orchestrator's run scope")
+	}
+}
