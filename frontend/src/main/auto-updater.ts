@@ -41,6 +41,7 @@ import {
 import {
   describeUpdateFailure,
   isManifest404Error,
+  isNoPublishedReleasesError,
   looksLikeRawUpdateError,
   updateErrorText,
   userFacingUpdateError,
@@ -1368,6 +1369,20 @@ type UpdateCheckOutcome = Awaited<ReturnType<typeof autoUpdater.checkForUpdates>
 
 const UPDATE_CHECK_TIMEOUT_MS = 60_000;
 const UPDATE_CHECK_TIMEOUT_MESSAGE = "Update check timed out. The update service did not respond in time. Try again.";
+const NO_PUBLISHED_RELEASES_MESSAGE = "This build has no published releases to update from. A new version comes as a local install.";
+
+// A feed with no release is an answer: the check succeeded and found nothing to
+// install. Without this, each automatic check counted a failure, and after
+// three the sidebar showed "Update check failed" for good.
+function settleNoPublishedReleases(): void {
+  consecutiveAutomaticNetFailures = 0;
+  consecutiveAutomaticCheckFailures = 0;
+  failingChecksPublished = false;
+  broadcastCompletedCheck(
+    hasStagedBuild() ? stagedDownloadedStatus() : { state: "unsupported", message: NO_PUBLISHED_RELEASES_MESSAGE },
+    true,
+  );
+}
 
 // electron-updater owns this executor but omits it from its public declarations.
 // Limit the adapter to metadata requests; downloads retain their own cancellation.
@@ -1411,6 +1426,12 @@ async function checkForUpdatesWithDeadline(): Promise<UpdateCheckOutcome> {
   try {
     return await autoUpdater.checkForUpdates();
   } catch (err) {
+    if (!timedOut && isNoPublishedReleasesError(err)) {
+      // The "error" event usually settled the status already. A reject-only
+      // failure still has to leave "checking".
+      if (lastStatus.state === "checking") settleNoPublishedReleases();
+      return null;
+    }
     throw timedOut ? new Error(UPDATE_CHECK_TIMEOUT_MESSAGE) : err;
   } finally {
     clearTimeout(timer);
@@ -2254,6 +2275,11 @@ function wireUpdaterEvents(): void {
     }
     recordUpdateDiagnostic("electron-updater-error", {}, err);
     clearDownloadStallWatchdog();
+    if (activeUpdaterPhase === "check" && isNoPublishedReleasesError(err)) {
+      console.info("update feed has no published releases; nothing to update from");
+      settleNoPublishedReleases();
+      return;
+    }
     if (handleMacStagingFailure(err)) {
       emitUpdateFailure(err);
       return;

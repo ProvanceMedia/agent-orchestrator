@@ -132,6 +132,18 @@ export function displayableUpdateError(text: string | undefined, fallback: strin
 	return text && !looksLikeRawUpdateError(text) ? text : fallback;
 }
 
+/**
+ * True when the release feed has no published release at all. Swarm 3.0
+ * installs local builds and publishes no releases, so a check finds nothing
+ * to update from. That is an answer, not a failure. electron-updater raises it
+ * from the releases feed under ERR_XML_MISSED_ELEMENT, and under
+ * ERR_UPDATER_NO_PUBLISHED_VERSIONS when the API lists no release.
+ */
+export function isNoPublishedReleasesError(err: unknown): boolean {
+	if (errorCode(err) === "ERR_UPDATER_NO_PUBLISHED_VERSIONS") return true;
+	return /^(?:Error: )?No published versions\b/.test(updateErrorText(err));
+}
+
 // isManifest404Error checks whether the error is a 404 on a release
 // manifest YAML file — a routine condition that should not be surfaced
 // to users as an error dialog.

@@ -1874,6 +1874,49 @@ describe("startAutoUpdates", () => {
     });
   });
 
+  it("reports a feed with no release as no update, not as a failure", async () => {
+    vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { module, autoUpdater, updaterEvents } = await importAutoUpdater();
+    const noReleases = () =>
+      Object.assign(new Error("No published versions on GitHub"), { code: "ERR_XML_MISSED_ELEMENT" });
+    autoUpdater.checkForUpdates.mockImplementation(() => {
+      const err = noReleases();
+      updaterEvents.get("error")?.(err);
+      return Promise.reject(err);
+    });
+
+    // Three automatic checks made the sidebar show "Update check failed".
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      await module.startAutoUpdates(stateDir);
+    }
+    expect(module.getUpdateStatus().checksFailing).toBeUndefined();
+    expect(module.getUpdateStatus()).toEqual(expect.objectContaining({
+      state: "unsupported",
+      message: "This build has no published releases to update from. A new version comes as a local install.",
+    }));
+
+    await module.checkForUpdatesNow(stateDir);
+    expect(module.getUpdateStatus()).toEqual(expect.objectContaining({ state: "unsupported" }));
+    expect(module.getUpdateStatus().checksFailing).toBeUndefined();
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  it("settles a manual check whose feed has no release and that only rejects", async () => {
+    vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const { module, autoUpdater } = await importAutoUpdater();
+    autoUpdater.checkForUpdates.mockRejectedValueOnce(
+      Object.assign(new Error("No published versions on GitHub"), { code: "ERR_UPDATER_NO_PUBLISHED_VERSIONS" }),
+    );
+
+    await module.checkForUpdatesNow(stateDir);
+
+    expect(module.getUpdateStatus()).toEqual(expect.objectContaining({
+      state: "unsupported",
+      message: "This build has no published releases to update from. A new version comes as a local install.",
+    }));
+  });
+
   it("broadcasts friendly error on rejected downloadUpdateNow with manifest 404", async () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     const { module, autoUpdater } = await importAutoUpdater();
