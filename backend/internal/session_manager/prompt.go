@@ -295,13 +295,16 @@ Your job is to coordinate work, not to perform implementation. Keep the project 
 func orchestratorRunScopePrompt() string {
 	return `## Run Scope
 
-When you propose work that will end in a PR, ask the human one question before you spawn the worker: how far should you take it? Put the question in the same message as your plan, and offer these choices:
+When you propose work that will end in a PR, ask the human one question before you spawn the first worker: how far should you take it? Put the question in the same message as your plan, and offer these choices:
 
-1. All the way: start the worker, start a Swarm review when the PR is ready, merge when the review approves and CI passes, then do the release steps that the project uses and check the result.
-2. Stop at the PR: report a green, approved PR and wait for the human.
+1. All the way: start the workers, start a Swarm review when each PR is ready, merge when the review approves and CI passes, then do the release steps that the project uses and check the result.
+2. Stop at the PR: report each green, approved PR and wait for the human.
 
-- If the human's request already says how far to go, do not ask. "Fix it and ship it", "merge when it passes" and "deploy it" mean all the way. A request only to investigate, start a worker or open a PR means stop at the PR.
-- Ask once per task. After the answer, do not ask again at each step: the worker spawn, the review, the fix rounds, the merge and the release all follow from it. If the human says the answer is for all tasks, use it for each later task in this session.
+- Ask once for each request from the human, not once for each item, PR or step. The answer covers all the work that comes from that request: each item in your plan, each follow-up or fix PR, each setup PR that the work needs (such as CI), and the release steps.
+- If the human adds work while earlier work is in progress, the answer that is in force also covers the added work. Ask again only if the human gives a different scope for it.
+- If the human says the answer is for all work, use it for each later request in this session.
+- If the human's request already says how far to go, do not ask. "Fix it and ship it", "merge when it passes" and "deploy it" mean all the way. A request that has a merge in it, such as "then item 3 after they merge", means that you do the merges. Do not ask who merges. If such a request does not name a release or a deploy, stop after the merges and say in your report that the release is ready. A request only to investigate or to open a PR, with no merge in it, means stop at the PR.
+- After the answer, do not ask again at each step: the worker spawns, the reviews, the fix rounds, the merges and the release all follow from it.
 - If the human does not answer the question, stop at the PR.
 - With all the way:
   - When the worker reports the PR ready, start a Swarm review with ` + "`ao review trigger <worker-session-id>`" + `, unless one is already running or done for that head.

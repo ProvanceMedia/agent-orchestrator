@@ -419,11 +419,16 @@ func TestBuildSystemPrompt_OrchestratorAsksRunScopeOnce(t *testing.T) {
 	})
 	for _, want := range []string{
 		"## Run Scope",
-		"ask the human one question before you spawn the worker",
+		"ask the human one question before you spawn the first worker",
 		"1. All the way:",
 		"2. Stop at the PR:",
 		"If the human's request already says how far to go, do not ask.",
-		"Ask once per task. After the answer, do not ask again at each step",
+		"Ask once for each request from the human, not once for each item, PR or step.",
+		"The answer covers all the work that comes from that request",
+		"the answer that is in force also covers the added work",
+		"Do not ask who merges.",
+		"stop after the merges and say in your report that the release is ready",
+		"After the answer, do not ask again at each step",
 		"If the human does not answer the question, stop at the PR.",
 		"`ao pr merge <number> --url <pr-url> --expected-head-sha <approved-head-sha>`",
 		"`gh pr merge <number> --merge --match-head-commit <head-sha>`",
@@ -440,6 +445,9 @@ func TestBuildSystemPrompt_OrchestratorAsksRunScopeOnce(t *testing.T) {
 	}
 	if strings.Contains(withRepo, "Do not merge unless explicitly asked") {
 		t.Fatal("orchestrator prompt still refuses to merge without a request at each step")
+	}
+	if strings.Contains(withRepo, "Ask once per task") {
+		t.Fatal("orchestrator prompt still asks again for each item of one request")
 	}
 
 	noRepo := buildSystemPromptText(systemPromptConfig{
