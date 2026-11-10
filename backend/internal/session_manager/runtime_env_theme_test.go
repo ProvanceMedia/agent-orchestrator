@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aoagents/agent-orchestrator/backend/internal/agentlaunch"
 	"github.com/aoagents/agent-orchestrator/backend/internal/termtheme"
 )
 
@@ -74,5 +75,23 @@ func TestAugmentAgentRuntimeEnvWindowsKeepsCaseVariantOverride(t *testing.T) {
 	}
 	if env[termtheme.EnvColorFgBg] != "0;15" {
 		t.Fatalf("COLORFGBG = %q, want 0;15", env[termtheme.EnvColorFgBg])
+	}
+}
+
+// Agents use the services connected in Swarm, not the connectors of the
+// owner's claude.ai account (mail, chat, CRM, accounts), unless the project
+// env turns those on.
+func TestAugmentAgentRuntimeEnvTurnsOffClaudeAIConnectors(t *testing.T) {
+	m := &Manager{dataDir: t.TempDir()}
+	env := map[string]string{}
+	m.augmentAgentRuntimeEnv(fakeAgent{}, env)
+	if env[agentlaunch.EnvClaudeAIConnectors] != "false" {
+		t.Fatalf("env = %v, want %s=false", env, agentlaunch.EnvClaudeAIConnectors)
+	}
+
+	env = map[string]string{agentlaunch.EnvClaudeAIConnectors: "true"}
+	m.augmentAgentRuntimeEnv(fakeAgent{}, env)
+	if env[agentlaunch.EnvClaudeAIConnectors] != "true" {
+		t.Fatalf("env = %v, want the project value kept", env)
 	}
 }

@@ -698,6 +698,7 @@ func (l *agentLauncher) runtimeEnv(ctx context.Context, spec LaunchSpec, argv []
 			env[key] = value
 		}
 	}
+	agentlaunch.DisableClaudeAIConnectors(env, runtime.GOOS == "windows")
 	return env
 }
 

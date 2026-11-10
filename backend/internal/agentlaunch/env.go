@@ -16,6 +16,23 @@ import (
 
 const aoBinaryName = "ao"
 
+// EnvClaudeAIConnectors is the Claude Code setting that loads the connectors
+// of the signed-in claude.ai account (for example mail, chat and CRM).
+const EnvClaudeAIConnectors = "ENABLE_CLAUDEAI_MCP_SERVERS"
+
+// DisableClaudeAIConnectors stops an agent from loading the connectors of the
+// owner's claude.ai account. Agents use the services connected in Swarm, which
+// the daemon grants for each project. A value that the project env already
+// set wins, in any key case when caseInsensitive is true.
+func DisableClaudeAIConnectors(env map[string]string, caseInsensitive bool) {
+	for key := range env {
+		if key == EnvClaudeAIConnectors || (caseInsensitive && strings.EqualFold(key, EnvClaudeAIConnectors)) {
+			return
+		}
+	}
+	env[EnvClaudeAIConnectors] = "false"
+}
+
 // MergeEnv overlays child-specific values on project values. The AO_ namespace
 // belongs to AO, including when a child has no value for a particular key.
 // A new process receives its own map so a launch cannot mutate saved config.

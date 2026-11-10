@@ -11,6 +11,7 @@ import (
 	"time"
 
 	codexreview "github.com/aoagents/agent-orchestrator/backend/internal/adapters/reviewer/codex"
+	"github.com/aoagents/agent-orchestrator/backend/internal/agentlaunch"
 	"github.com/aoagents/agent-orchestrator/backend/internal/domain"
 	"github.com/aoagents/agent-orchestrator/backend/internal/ports"
 	sessionmanager "github.com/aoagents/agent-orchestrator/backend/internal/session_manager"
@@ -113,6 +114,9 @@ func TestLauncherSpawnEnvCannotOverrideWorkerContext(t *testing.T) {
 	}
 	if rt.createCfg.Env["AO_REVIEW_HARNESS"] != string(domain.ReviewerClaudeCode) {
 		t.Fatalf("AO_REVIEW_HARNESS = %q, want %q", rt.createCfg.Env["AO_REVIEW_HARNESS"], domain.ReviewerClaudeCode)
+	}
+	if rt.createCfg.Env[agentlaunch.EnvClaudeAIConnectors] != "false" {
+		t.Fatalf("%s = %q, want false: a reviewer must not get the claude.ai connectors", agentlaunch.EnvClaudeAIConnectors, rt.createCfg.Env[agentlaunch.EnvClaudeAIConnectors])
 	}
 	if rt.createCfg.Env[sessionmanager.EnvProjectID] != "mer" {
 		t.Fatalf("%s = %q, want mer", sessionmanager.EnvProjectID, rt.createCfg.Env[sessionmanager.EnvProjectID])

@@ -6807,6 +6807,7 @@ func (m *Manager) augmentAgentRuntimeEnv(agent ports.Agent, env map[string]strin
 	// light canvas. A value the project env already set wins, in any key case
 	// where the OS folds env keys.
 	termtheme.ApplyFoldingKeys(env, m.dataDir, envKeysCaseInsensitive)
+	agentlaunch.DisableClaudeAIConnectors(env, envKeysCaseInsensitive)
 }
 
 // prepareWorkspace runs the per-session pre-launch steps before the runtime
