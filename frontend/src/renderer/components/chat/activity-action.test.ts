@@ -53,7 +53,7 @@ describe("describeConversationActivity", () => {
 		expect(describeConversationActivity(activity({
 			summary: "Created a pull request",
 			detail: { action: "custom.unlisted" },
-		}))?.label).toBe("AO action");
+		}))?.label).toBe("Swarm action");
 		expect(describeConversationActivity(activity({
 			activityKind: "command",
 			summary: "ao spawn reviewer",
@@ -113,7 +113,7 @@ describe("describeConversationActivity", () => {
 		expect(summary).toBe("Spawned 2 agents · Switched the agent");
 	});
 
-	it("batches AO actions with ordinary tool calls and keeps boundaries", () => {
+	it("batches Swarm actions with ordinary tool calls and keeps boundaries", () => {
 		expect(isOrdinaryActivity(activity({ detail: { action: "session.renamed" } }))).toBe(true);
 		expect(isOrdinaryActivity(activity({ activityKind: "command", detail: { command: "rg foo" } }))).toBe(true);
 		expect(isOrdinaryActivity(activity({ activityKind: "approval", status: "pending" }))).toBe(false);

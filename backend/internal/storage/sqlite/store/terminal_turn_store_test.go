@@ -160,3 +160,55 @@ func TestTerminalTurnStopsGrowingPastItsCap(t *testing.T) {
 		t.Fatalf("turns = %d, %v; want the first two joined and the third on its own", len(turns), err)
 	}
 }
+
+// A turn a Swarm message opens leaves only a hidden marker, and a stop with no
+// open turn records a turn the agent started itself, once.
+func TestTerminalTurnsRecordAgentStartedTurnsAndHideMarkers(t *testing.T) {
+	s, session := newTerminalTurnSession(t, "agent-started")
+	ctx := context.Background()
+	at := time.Date(2026, 11, 8, 13, 0, 0, 0, time.UTC)
+	turn := func() domain.TerminalTurn {
+		at = at.Add(time.Minute)
+		return domain.TerminalTurn{SessionID: session.ID, Harness: domain.HarnessClaudeCode, NativeSessionID: "thread-1", RequestedAt: at}
+	}
+	stop := func(response string) {
+		t.Helper()
+		at = at.Add(time.Minute)
+		if err := s.RecordTerminalTurnStop(ctx, turn(), response, at); err != nil {
+			t.Fatalf("stop %q: %v", response, err)
+		}
+	}
+	request := turn()
+	request.UserRequest = "start the run"
+	if err := s.RecordTerminalTurnRequest(ctx, request); err != nil {
+		t.Fatal(err)
+	}
+	stop("run started")
+	// A background task finishes: a stop with no prompt before it.
+	stop("the review approved PR #8")
+	// The same stop reported twice is one turn.
+	stop("the review approved PR #8")
+	// A Swarm message opens a turn: its stop closes the marker.
+	if err := s.RecordTerminalTurnMarker(ctx, turn()); err != nil {
+		t.Fatal(err)
+	}
+	stop("handled the worker report")
+	// A stop with no text and no open turn records nothing.
+	stop("")
+
+	got, err := s.ListTerminalTurns(ctx, session.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{
+		"start the run => run started",
+		domain.AgentStartedTurnRequest + " => the review approved PR #8",
+	}
+	var pairs []string
+	for _, turn := range got {
+		pairs = append(pairs, turn.UserRequest+" => "+turn.AgentResponse)
+	}
+	if strings.Join(pairs, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("terminal turns =\n%s\nwant\n%s", strings.Join(pairs, "\n"), strings.Join(want, "\n"))
+	}
+}

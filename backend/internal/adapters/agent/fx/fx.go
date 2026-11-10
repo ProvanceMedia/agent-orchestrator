@@ -95,8 +95,8 @@ func (p *Plugin) BuildAfterStartPrompt(ctx context.Context, cfg ports.LaunchConf
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
-	return "## AO Standing Instructions\n\n" + strings.TrimSpace(cfg.SystemPrompt) +
-		"\n\n## AO Task\n\n" + strings.TrimSpace(cfg.Prompt), nil
+	return "## Swarm Standing Instructions\n\n" + strings.TrimSpace(cfg.SystemPrompt) +
+		"\n\n## Swarm Task\n\n" + strings.TrimSpace(cfg.Prompt), nil
 }
 
 // ContinuationCapabilities reports that fx assigns native session ids and

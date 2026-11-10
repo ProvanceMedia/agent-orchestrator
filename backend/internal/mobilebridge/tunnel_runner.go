@@ -108,7 +108,7 @@ var (
 	// be served now.
 	errFixedTunnelReady = errors.New("fixed address ready")
 	// errFixedTunnelChanged stops a fixed tunnel AO Cloud no longer hands out.
-	errFixedTunnelChanged = errors.New("AO Cloud no longer hands out this fixed address")
+	errFixedTunnelChanged = errors.New("Swarm Cloud no longer hands out this fixed address") //nolint:staticcheck // The product name starts this sentence, which the user reads.
 )
 
 func (t *TunnelRunner) runOnce(ctx context.Context) error {

@@ -352,7 +352,7 @@ describe("CoderSettingsSection removing the connection", () => {
 		renderSection(queryClient);
 		await user.click(screen.getByRole("button", { name: "Remove connection" }));
 		const dialog = await screen.findByRole("dialog");
-		expect(within(dialog).getByText(/New Coder sessions will run on AO's managed Coder/)).toBeInTheDocument();
+		expect(within(dialog).getByText(/New Coder sessions will run on Swarm's managed Coder/)).toBeInTheDocument();
 		expect(mocks.deleteOrgCoderConfig).not.toHaveBeenCalled();
 		await user.click(within(dialog).getByRole("button", { name: "Remove" }));
 		await waitFor(() => expect(mocks.deleteOrgCoderConfig).toHaveBeenCalledWith("org-1"));

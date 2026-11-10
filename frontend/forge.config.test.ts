@@ -362,7 +362,7 @@ describe("postMake artifact verification", () => {
 
 describe("Windows app labels", () => {
 	it("matches the installer display name without renaming the executable or bundle", async () => {
-		expect(WINDOWS_DISPLAY_NAME).toBe("Orchestrator.inc");
+		expect(WINDOWS_DISPLAY_NAME).toBe("Swarm 3.0");
 		expect(appPackage.author).toBe(WINDOWS_DISPLAY_NAME);
 		expect(config.packagerConfig?.win32metadata).toEqual({
 			FileDescription: WINDOWS_DISPLAY_NAME,
@@ -372,12 +372,12 @@ describe("Windows app labels", () => {
 		const windowsInstaller = config.makers?.find((maker) => maker instanceof MakerNSIS);
 		await windowsInstaller?.prepareConfig("x64");
 		expect(windowsInstaller?.config.productName).toBe(WINDOWS_DISPLAY_NAME);
-		expect(windowsInstaller?.config.appId).toBe("dev.agent-orchestrator.desktop");
+		expect(windowsInstaller?.config.appId).toBe("com.provancemedia.swarm3");
 		expect(appPackage.name).toBe("agent-orchestrator");
-		expect(appPackage.productName).toBe("Orchestrator");
+		expect(appPackage.productName).toBe("Swarm 3.0");
 		expect(config.packagerConfig?.executableName).toBe("agent-orchestrator");
-		expect(config.packagerConfig?.name).toBe("Agent Orchestrator");
-		expect(config.packagerConfig?.appBundleId).toBe("dev.agent-orchestrator.desktop");
+		expect(config.packagerConfig?.name).toBe("Swarm 3.0");
+		expect(config.packagerConfig?.appBundleId).toBe("com.provancemedia.swarm3");
 	});
 });
 

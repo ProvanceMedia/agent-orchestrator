@@ -67,7 +67,7 @@ describe("install window layout", () => {
 
 	it("passes the layout to electron-builder", () => {
 		expect(macDmgLayout()).toMatchObject({
-			title: "Orchestrator",
+			title: "Swarm 3.0",
 			background: BACKGROUND_IMAGE,
 			iconSize: DMG_LAYOUT.iconSize,
 			contents: [
@@ -247,7 +247,7 @@ describe("buildMacDmg", () => {
 		expect(options.mac).toEqual(["dmg:arm64"]);
 		expect(options.config.publish).toBeNull();
 		expect(options.config.mac.identity).toBeNull();
-		expect(options.config.productName).toBe("Agent Orchestrator");
+		expect(options.config.productName).toBe("Swarm 3.0");
 		expect(options.config.directories.output).toBe(path.dirname(output));
 		expect(options.config.dmg).toMatchObject({
 			...macDmgLayout(),
@@ -267,7 +267,7 @@ describe("buildMacDmg", () => {
 
 	it.each([
 		[{ app: "", arch: "arm64", output: "x.dmg" }, /required/],
-		[{ app: "/tmp/Other.app", arch: "arm64", output: "x.dmg" }, /must be a Agent Orchestrator.app bundle/],
+		[{ app: "/tmp/Other.app", arch: "arm64", output: "x.dmg" }, /must be a Swarm 3.0.app bundle/],
 		[{ arch: "universal", output: "x.dmg" }, /unsupported --arch/],
 		[{ arch: "arm64", output: "x.zip" }, /must end in .dmg/],
 	])("rejects bad arguments %#", async (args, error) => {

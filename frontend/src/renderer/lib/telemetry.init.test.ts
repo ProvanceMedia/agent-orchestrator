@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+// The Swarm 3.0 fork ships no built-in PostHog project, so these tests supply one.
+vi.mock("../../shared/posthog-config", async (importOriginal) => ({
+	...(await importOriginal<typeof import("../../shared/posthog-config")>()),
+	DEFAULT_POSTHOG_PROJECT_KEY: "phc_test_key",
+}));
+
 // initTelemetry memoizes its result in a module-scoped promise, so each test
 // resets the module registry and re-mocks the heavy boundaries (posthog, the
 // Electron bridge) before importing. This exercises the real init control flow.

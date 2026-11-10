@@ -67,11 +67,13 @@ func TestReportRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer reopened.Close()
+	// No other worker in the project is busy, so the service skips the
+	// settlement window and the report is due at once.
 	got, ok, err := reopened.GetReport(ctx, "rpt_roundtrip")
 	if err != nil || !ok {
 		t.Fatalf("persisted report: ok=%v err=%v", ok, err)
 	}
-	if got.SessionID != session.ID || got.ProjectID != session.ProjectID || got.State != domain.ReportDone || got.Note != "real boundary" || got.DeliveryState != domain.ReportPending || !got.AvailableAt.Equal(now.Add(domain.ReportSettlementWindow)) || !got.SettlementDeadline.Equal(got.AvailableAt) || got.RepeatCount != 1 || len(got.Outputs) != 3 || got.Outputs[1].Reference != "artifact-two" || got.Outputs[2].Kind != domain.ReportOutputPRReviewed {
+	if got.SessionID != session.ID || got.ProjectID != session.ProjectID || got.State != domain.ReportDone || got.Note != "real boundary" || got.DeliveryState != domain.ReportPending || !got.AvailableAt.Equal(now) || !got.SettlementDeadline.Equal(got.AvailableAt) || got.RepeatCount != 1 || len(got.Outputs) != 3 || got.Outputs[1].Reference != "artifact-two" || got.Outputs[2].Kind != domain.ReportOutputPRReviewed {
 		t.Fatalf("persisted report = %+v", got)
 	}
 	persistedSession, ok, err := reopened.GetSession(ctx, session.ID)

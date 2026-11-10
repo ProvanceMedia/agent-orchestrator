@@ -4239,7 +4239,6 @@ func TestSpawnGenericOrchestratorReturnsExistingActiveSession(t *testing.T) {
 		ProjectID:   "mer",
 		Kind:        domain.KindOrchestrator,
 		Harness:     domain.HarnessClaudeCode,
-		Prompt:      "start another orchestrator",
 		DisplayName: "duplicate",
 	})
 	if err != nil {
@@ -4253,6 +4252,51 @@ func TestSpawnGenericOrchestratorReturnsExistingActiveSession(t *testing.T) {
 	}
 	if fc.spawned {
 		t.Fatal("manager.Spawn must not be called when an active orchestrator already exists")
+	}
+}
+
+// A prompted spawn cannot reuse the live orchestrator, because the reused
+// session never receives the prompt. The caller gets a conflict that names the
+// live orchestrator, so it can send the prompt to it instead.
+func TestSpawnPromptedOrchestratorConflictsWithActiveSession(t *testing.T) {
+	st := newFakeStore()
+	st.projects["mer"] = domain.ProjectRecord{ID: "mer"}
+	st.sessions["mer-orch"] = domain.SessionRecord{ID: "mer-orch", ProjectID: "mer", Kind: domain.KindOrchestrator}
+	fc := &fakeCommander{}
+	svc := &Service{manager: fc, store: st}
+
+	_, _, _, err := svc.Spawn(context.Background(), ports.SpawnConfig{
+		ProjectID:   "mer",
+		Kind:        domain.KindOrchestrator,
+		Prompt:      "do the two tasks in the brief",
+		DisplayName: "run 2",
+	})
+	var apiError *apierr.Error
+	if !errors.As(err, &apiError) || apiError.Kind != apierr.KindConflict || apiError.Code != "ORCHESTRATOR_ALREADY_ACTIVE" {
+		t.Fatalf("Spawn error = %v, want ORCHESTRATOR_ALREADY_ACTIVE conflict", err)
+	}
+	if apiError.Details["sessionId"] != "mer-orch" {
+		t.Fatalf("conflict details = %v, want sessionId mer-orch", apiError.Details)
+	}
+	if !strings.Contains(apiError.Message, "ao send --session mer-orch") {
+		t.Fatalf("conflict message = %q, want it to name ao send --session mer-orch", apiError.Message)
+	}
+	if fc.spawned {
+		t.Fatal("manager.Spawn must not run while another orchestrator is active")
+	}
+}
+
+// A prompt of only spaces carries nothing to lose, so the idempotent ensure
+// still returns the live orchestrator.
+func TestSpawnBlankPromptOrchestratorReturnsExistingActiveSession(t *testing.T) {
+	st := newFakeStore()
+	st.projects["mer"] = domain.ProjectRecord{ID: "mer"}
+	st.sessions["mer-orch"] = domain.SessionRecord{ID: "mer-orch", ProjectID: "mer", Kind: domain.KindOrchestrator}
+	svc := &Service{manager: &fakeCommander{}, store: st}
+
+	got, _, _, err := svc.Spawn(context.Background(), ports.SpawnConfig{ProjectID: "mer", Kind: domain.KindOrchestrator, Prompt: "  \n"})
+	if err != nil || got.ID != "mer-orch" {
+		t.Fatalf("Spawn = (%q, %v), want existing orchestrator mer-orch", got.ID, err)
 	}
 }
 
@@ -5409,6 +5453,49 @@ func TestListPRSummariesThreadCountSerializesObservedZero(t *testing.T) {
 	}
 	if count := got[0].Review.UnresolvedThreadCount; count == nil || *count != 0 {
 		t.Fatalf("unresolvedThreadCount = %v, want explicit 0", count)
+	}
+}
+
+// The built-in reviewer's verdict for the current head is reported next to
+// the provider decision and never replaces it: the provider decision is what
+// branch protection reads.
+func TestListPRSummariesExposesBuiltInReviewVerdictForCurrentHead(t *testing.T) {
+	st := newFakeStore()
+	st.sessions["mer-1"] = domain.SessionRecord{ID: "mer-1", ProjectID: "mer", Kind: domain.KindWorker}
+	st.reviewRuns["mer-1"] = []domain.CurrentHeadReviewRun{
+		{SessionID: "mer-1", Harness: "claude-code", PRURL: "approved", Status: domain.ReviewRunComplete, Verdict: domain.VerdictApproved},
+		{SessionID: "mer-1", Harness: "claude-code", PRURL: "split", Status: domain.ReviewRunComplete, Verdict: domain.VerdictApproved},
+		{SessionID: "mer-1", Harness: "codex", PRURL: "split", Status: domain.ReviewRunComplete, Verdict: domain.VerdictChangesRequested},
+		{SessionID: "mer-1", Harness: "claude-code", PRURL: "running", Status: domain.ReviewRunRunning},
+	}
+	stList := &multiPRFakeStore{fakeStore: st, prs: []domain.PullRequest{
+		{URL: "approved", SessionID: "mer-1", Number: 1},
+		{URL: "split", SessionID: "mer-1", Number: 2, Review: domain.ReviewRequired},
+		{URL: "running", SessionID: "mer-1", Number: 3},
+		{URL: "unreviewed", SessionID: "mer-1", Number: 4},
+	}}
+
+	got, err := (&Service{store: stList}).ListPRSummaries(context.Background(), "mer-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	byURL := map[string]PRSummary{}
+	for _, pr := range got {
+		byURL[pr.URL] = pr
+	}
+	for url, want := range map[string]struct {
+		decision domain.ReviewDecision
+		verdict  domain.ReviewVerdict
+	}{
+		"approved":   {domain.ReviewNone, domain.VerdictApproved},
+		"split":      {domain.ReviewRequired, domain.VerdictChangesRequested},
+		"running":    {domain.ReviewNone, ""},
+		"unreviewed": {domain.ReviewNone, ""},
+	} {
+		review := byURL[url].Review
+		if review.Decision != want.decision || review.AOVerdict != want.verdict {
+			t.Errorf("%s review = (decision %q, aoVerdict %q), want (%q, %q)", url, review.Decision, review.AOVerdict, want.decision, want.verdict)
+		}
 	}
 }
 

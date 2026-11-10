@@ -9,14 +9,16 @@ import (
 	"fmt"
 	"io"
 	"slices"
+	"sync"
 	"unicode/utf8"
 
 	"github.com/spf13/cobra"
 )
 
 // `ao mcp` is the stdio MCP server AO passes to every chat session, so the
-// agent sees html_preview and html_render in its tool list, and the computer
-// use tools when the session has computer use (mcp_cua.go). The agent's
+// agent sees html_preview and html_render in its tool list, the computer use
+// tools when the session has computer use (mcp_cua.go), and one tool for each
+// service connected in Settings > Connections (mcp_connections.go). The agent's
 // harness spawns it outside the shell sandbox, so it reaches the loopback
 // daemon even when the agent's own shell commands cannot. Hand-written, and
 // only what these tools need: newline-delimited JSON-RPC 2.0, one request at
@@ -33,7 +35,7 @@ var mcpProtocolVersions = []string{mcpDefaultProtocolVersion, "2025-03-26", "202
 func newMCPCommand(ctx *commandContext) *cobra.Command {
 	return &cobra.Command{
 		Use:    "mcp",
-		Short:  "Serve AO's chat tools over stdio MCP (internal)",
+		Short:  "Serve Swarm's chat tools over stdio MCP (internal)",
 		Hidden: true,
 		Args:   noArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
@@ -63,12 +65,26 @@ type mcpResponse struct {
 func (c *commandContext) serveMCP(ctx context.Context, in io.Reader, out io.Writer) error {
 	reader := bufio.NewReader(in)
 	encoder := json.NewEncoder(out)
-	state := &mcpState{}
+	// The index poll writes a notification between replies, so writes share a lock.
+	var writeMu sync.Mutex
+	write := func(v any) error {
+		writeMu.Lock()
+		defer writeMu.Unlock()
+		return encoder.Encode(v)
+	}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	state := &mcpState{conn: &mcpConnState{}}
+	state.startPoll = func() {
+		go c.pollMCPIndex(ctx, state.conn, func() {
+			_ = write(map[string]any{"jsonrpc": "2.0", "method": "notifications/tools/list_changed"})
+		})
+	}
 	for {
 		line, readErr := reader.ReadBytes('\n')
 		if line = bytes.TrimSpace(line); len(line) > 0 {
 			if resp := c.handleMCP(ctx, state, line); resp != nil {
-				if err := encoder.Encode(resp); err != nil {
+				if err := write(resp); err != nil {
 					return err
 				}
 			}
@@ -112,13 +128,22 @@ func (c *commandContext) handleMCP(ctx context.Context, state *mcpState, line []
 		}
 		resp.Result = map[string]any{
 			"protocolVersion": version,
-			"capabilities":    map[string]any{"tools": map[string]any{}},
+			"capabilities":    map[string]any{"tools": map[string]any{"listChanged": true}},
 			"serverInfo":      map[string]any{"name": "ao", "version": Version},
+		}
+		if state.startPoll != nil && !state.polling {
+			state.polling = true
+			state.startPoll()
 		}
 	case "ping":
 		resp.Result = map[string]any{}
 	case "tools/list":
 		tools := append(append([]map[string]any{}, mcpTools...), c.cuaTools(ctx, state)...)
+		tools = append(tools, c.connectionTools(ctx, state)...)
+		if state.conn != nil {
+			c.refreshMCPIndex(ctx, state.conn)
+			tools = append(tools, state.conn.list()...)
+		}
 		resp.Result = map[string]any{"tools": tools}
 	case "tools/call":
 		var p struct {
@@ -135,6 +160,24 @@ func (c *commandContext) handleMCP(ctx context.Context, state *mcpState, line []
 			if c.cuaTools(ctx, state) != nil && state.cuaNames[p.Name] {
 				resp.Result = c.callCua(ctx, p.Name, p.Arguments)
 				break
+			}
+			if c.isConnectionTool(ctx, state, p.Name) {
+				resp.Result = c.callConnection(ctx, p.Name, p.Arguments)
+				break
+			}
+			if state.conn != nil && isMCPGeneralTool(p.Name) && state.conn.answered() {
+				resp.Result = c.callMCPConn(ctx, p.Name, p.Arguments, nil)
+				break
+			}
+			if state.conn != nil {
+				target, ok := state.conn.target(p.Name)
+				if !ok && realToolName.MatchString(p.Name) && c.refreshMCPIndex(ctx, state.conn) {
+					target, ok = state.conn.target(p.Name)
+				}
+				if ok {
+					resp.Result = c.callMCPConn(ctx, p.Name, p.Arguments, &target)
+					break
+				}
 			}
 			resp.Error = &mcpError{Code: -32602, Message: fmt.Sprintf("unknown tool %q", p.Name)}
 		}
@@ -237,10 +280,10 @@ const (
 		`is put into the page: PNG, JPEG, GIF, WebP, AVIF, SVG, BMP, or ICO, up to 10 MiB each.`
 	mcpLayoutGuide = `The frame is borderless on the thread background, as wide as the reply column, and its left edge lines up with your text. ` +
 		`Use a fluid width with no outer padding, card, border, or banner title: the page is part of your reply. ` +
-		`An expanded page opens in a dialog up to 1024 px wide that fits its height, and AO centers a top-level block that has a maximum width. ` +
+		`An expanded page opens in a dialog up to 1024 px wide that fits its height, and Swarm centers a top-level block that has a maximum width. ` +
 		`Give charts fixed pixel heights. Do not size html or body with 100vh or height: 100%; the frame grows to fit the page, and viewport heights make it grow again. ` +
-		`Scripts run in a sandbox with no access to AO, cookies, or storage. Links open in the user's browser.`
-	mcpThemeGuide = `AO injects its active theme as CSS custom properties on :root, and they follow light/dark mode live: ` +
+		`Scripts run in a sandbox with no access to Swarm, cookies, or storage. Links open in the user's browser.`
+	mcpThemeGuide = `Swarm injects its active theme as CSS custom properties on :root, and they follow light/dark mode live: ` +
 		`--background (identical to the thread), --foreground, --muted, --muted-foreground, --card, --card-foreground, --popover, ` +
 		`--border, --border-strong, --primary, --primary-foreground, --accent, --accent-foreground, --success, --warning, ` +
 		`--destructive, --code, --link, --chart-1 ... --chart-6 (categorical series), --radius, --font-sans, --font-mono. ` +
@@ -257,10 +300,10 @@ var mcpTools = []map[string]any{
 	{
 		"name":  "html_preview",
 		"title": "Preview HTML",
-		"description": "Load an HTML page in the AO desktop app the way readers see it. Returns a PNG screenshot, " +
+		"description": "Load an HTML page in the Swarm desktop app the way readers see it. Returns a PNG screenshot, " +
 			"contentHeight (the height the page needs at this width), and the page's console messages. " +
 			"Call it before html_render. Read the screenshot, and fix every console error. " +
-			"The check needs the AO desktop app; without it, publish without a check. " +
+			"The check needs the Swarm desktop app; without it, publish without a check. " +
 			mcpPageRules + " The page gets the theme variables and layout described in html_render.",
 		"inputSchema": map[string]any{
 			"type": "object",
@@ -283,7 +326,7 @@ var mcpTools = []map[string]any{
 		"description": "Show a finished HTML page (chart, table, diagram, image collage, mockup) inline in this chat thread, " +
 			"above your final reply. Preview it with html_preview first, then call this before you write the reply. " +
 			"The reader already sees the page, so the reply must not announce it, say where it is, or restate it: " +
-			"add only what the page does not say. Use this tool, not a built-in visualize skill: AO does not show those. " +
+			"add only what the page does not say. Use this tool, not a built-in visualize skill: Swarm does not show those. " +
 			mcpPageRules + " " + mcpLayoutGuide + " " + mcpThemeGuide,
 		"inputSchema": map[string]any{
 			"type": "object",
@@ -294,7 +337,7 @@ var mcpTools = []map[string]any{
 				},
 				"height": map[string]any{
 					"type": "integer", "minimum": 80, "maximum": 2000,
-					"description": "Frame height in CSS pixels, 80-2000; defaults to 400. AO measures the page when " +
+					"description": "Frame height in CSS pixels, 80-2000; defaults to 400. Swarm measures the page when " +
 						"you publish it, so this is used only when the desktop app is not running. The frame then fits the page.",
 				},
 				"artifact": map[string]any{

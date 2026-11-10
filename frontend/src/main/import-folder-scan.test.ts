@@ -81,7 +81,7 @@ describe("scanImportFolder", () => {
 			}),
 		]);
 		expect(scan.setupWarning).toContain("Selected folder is inside an existing Git repository at ");
-		expect(scan.setupWarning).toContain("AO will initialize this folder as a separate repository.");
+		expect(scan.setupWarning).toContain("Swarm will initialize this folder as a separate repository.");
 	});
 
 	it("reports a true project repository root as importable", async () => {
@@ -214,7 +214,7 @@ describe("scanImportFolder", () => {
 		);
 	});
 
-	it("reports folders inside AO-managed worktrees before offering setup", async () => {
+	it("reports folders inside Swarm-managed worktrees before offering setup", async () => {
 		const home = await tempDir();
 		const selected = path.join(home, ".ao", "data", "worktrees", "project", "session");
 		await mkdir(selected, { recursive: true });
@@ -226,7 +226,7 @@ describe("scanImportFolder", () => {
 				path: selected,
 				relativePath: ".",
 				status: "error",
-				reason: "Selected folder is inside AO's internal data directory. Select a project folder outside ~/.ao.",
+				reason: "Selected folder is inside Swarm's internal data directory. Select a project folder outside ~/.ao.",
 			}),
 		]);
 	});

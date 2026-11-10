@@ -4,8 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import semver from "semver";
 
-export const AO_BUNDLE_ID = "dev.agent-orchestrator.desktop";
-export const MAINTAINED_MAC_APP_PATH = "/Applications/Agent Orchestrator.app";
+export const AO_BUNDLE_ID = "com.provancemedia.swarm3";
+export const MAINTAINED_MAC_APP_PATH = "/Applications/Swarm 3.0.app";
 
 export interface BundleMetadata {
 	bundleId: string | null;
@@ -85,8 +85,8 @@ export async function findStaleAppCopies(
 
 	const dependencies = { ...defaultDiscoveryDependencies, ...dependencyOverrides };
 	const candidates = [
-		path.join(input.homeDir, "Downloads", "Agent Orchestrator.app"),
-		path.join(input.homeDir, "Desktop", "Agent Orchestrator.app"),
+		path.join(input.homeDir, "Downloads", "Swarm 3.0.app"),
+		path.join(input.homeDir, "Desktop", "Swarm 3.0.app"),
 	];
 	const copies: StaleAppCopy[] = [];
 	for (const candidate of candidates) {

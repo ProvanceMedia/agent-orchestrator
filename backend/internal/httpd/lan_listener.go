@@ -83,6 +83,9 @@ var lanControlBlockedPrefixes = []string{
 	"/api/v1/system/install",
 	"/api/v1/computer-use",
 	"/api/v1/settings/computer-use",
+	"/api/v1/connections",
+	"/api/v1/mcp",
+	"/api/v1/mcp-oauth",
 	"/api/v1/agents/codex/accounts",
 	"/api/v1/agents/codex/account-switches",
 	"/api/v1/agents/accounts",
@@ -150,7 +153,7 @@ func expectedHostGuard(hostID string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if expected := r.Header.Get("X-AO-Expected-Host-ID"); expected != "" && expected != hostID {
-				envelope.WriteAPIError(w, r, http.StatusMisdirectedRequest, "conflict", "HOST_ID_MISMATCH", "This address belongs to another AO host; reconnect to the intended host.", nil)
+				envelope.WriteAPIError(w, r, http.StatusMisdirectedRequest, "conflict", "HOST_ID_MISMATCH", "This address belongs to another Swarm host; reconnect to the intended host.", nil)
 				return
 			}
 			next.ServeHTTP(w, r)

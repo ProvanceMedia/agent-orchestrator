@@ -28,7 +28,7 @@ func PeerVerifier(executable string) func(net.Conn) error {
 			return fmt.Errorf("resolve peer executable: %w", err)
 		}
 		if !sameFile(path, executable) {
-			return fmt.Errorf("peer executable %s is not AO", path)
+			return fmt.Errorf("peer executable %s is not Swarm", path)
 		}
 		return nil
 	}

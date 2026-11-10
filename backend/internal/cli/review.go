@@ -151,7 +151,7 @@ type reviewListOptions struct {
 func newReviewCommand(ctx *commandContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "review",
-		Short: "Manage AO code reviews of a worker's PR",
+		Short: "Manage Swarm code reviews of a worker's PR",
 	}
 	cmd.AddCommand(newReviewListCommand(ctx))
 	cmd.AddCommand(newReviewSubmitCommand(ctx))
@@ -170,7 +170,7 @@ func newReviewListCommand(ctx *commandContext) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			session := reviewTargetSession(args, "")
 			if session == "" {
-				return usageError{errors.New("usage: worker session id is required outside an AO session")}
+				return usageError{errors.New("usage: worker session id is required outside a Swarm session")}
 			}
 			var res listReviewsResponse
 			path := "sessions/" + url.PathEscape(session) + "/reviews"
@@ -353,13 +353,13 @@ func newReviewTriggerCommand(ctx *commandContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "trigger [worker-session-id]",
 		Aliases: []string{"execute", "restart"},
-		Short:   "Start an AO review of a worker's PR (default: this session's PR)",
-		Long: `Start an independent AO reviewer on the worker session's open PR heads.
+		Short:   "Start a Swarm review of a worker's PR (default: this session's PR)",
+		Long: `Start an independent Swarm reviewer on the worker session's open PR heads.
 
-With no session argument the calling AO session is reviewed, so a worker can
-request a review of its own PR. AO fetches the session's PRs fresh from the
+With no session argument the calling Swarm session is reviewed, so a worker can
+request a review of its own PR. Swarm fetches the session's PRs fresh from the
 provider first, so the pass reviews the commit really on the PR. Right after
-opening a PR, pass --pr <url>: AO attaches it to the session if it does not
+opening a PR, pass --pr <url>: Swarm attaches it to the session if it does not
 track it yet (never taking it from another active session) and reviews only it. The reviewer defaults to the session's reviewer
 choice, then the project's reviewer config, then the project's default worker
 agent and model; --agent, --model, and --effort override it for this pass only.
@@ -370,7 +370,7 @@ again, or to add a different --agent alongside one that is still running.
 
 The worker session's review auto-inject is turned on so the reviewer's inline
 review comments are delivered to the worker; pass --no-inject to leave
-that setting unchanged. AO's review is internal: an approval is not a GitHub
+that setting unchanged. Swarm's review is internal: an approval is not a GitHub
 approval and does not authorize merging.`,
 		Args: atMostOneArg,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -384,8 +384,8 @@ approval and does not authorize merging.`,
 		}
 		return pflag.NormalizedName(name)
 	})
-	f.StringVar(&opts.session, "session", "", "Worker session id (or pass it positionally; default: this AO session)")
-	f.StringVar(&opts.prURL, "pr", "", "Review only this pull request URL, attaching it to the session if AO does not track it yet (default: every eligible PR on the session)")
+	f.StringVar(&opts.session, "session", "", "Worker session id (or pass it positionally; default: this Swarm session)")
+	f.StringVar(&opts.prURL, "pr", "", "Review only this pull request URL, attaching it to the session if Swarm does not track it yet (default: every eligible PR on the session)")
 	f.StringVar(&opts.harness, "harness", "", "Reviewer agent / --agent for this pass only (e.g. claude-code, codex)")
 	f.StringVar(&opts.model, "model", "", "Reviewer model for this pass only")
 	f.StringVar(&opts.effort, "effort", "", "Reviewer reasoning effort for this pass only")
@@ -400,7 +400,7 @@ func (c *commandContext) triggerReview(cmd *cobra.Command, args []string, opts r
 	}
 	session := reviewTargetSession(args, opts.session)
 	if session == "" {
-		return usageError{errors.New("usage: worker session id is required (positional or --session) outside an AO session")}
+		return usageError{errors.New("usage: worker session id is required (positional or --session) outside a Swarm session")}
 	}
 	req := triggerReviewRequest{
 		Harness:            strings.TrimSpace(opts.harness),
@@ -469,7 +469,7 @@ func shortReviewSHA(sha string) string {
 func (c *commandContext) stopReview(cmd *cobra.Command, args []string, opts reviewSessionOptions) error {
 	session := reviewTargetSession(args, opts.session)
 	if session == "" {
-		return usageError{errors.New("usage: worker session id is required (positional or --session) outside an AO session")}
+		return usageError{errors.New("usage: worker session id is required (positional or --session) outside a Swarm session")}
 	}
 	path := "sessions/" + url.PathEscape(session) + "/reviews/cancel"
 	if err := c.postJSON(cmd.Context(), path, struct{}{}, nil); err != nil {

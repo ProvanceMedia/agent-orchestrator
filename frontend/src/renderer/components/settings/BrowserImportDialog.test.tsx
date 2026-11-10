@@ -296,7 +296,7 @@ describe("BrowserImportDialog", () => {
 		expect(details).not.toHaveAttribute("open");
 		expect(details).toHaveTextContent("2 expired cookies were skipped.");
 		expect(details).toHaveTextContent("3 cookies tied to isolated browser contexts");
-		if (failure) expect(details).toHaveTextContent("AO could not write 1 cookies to the new profile.");
+		if (failure) expect(details).toHaveTextContent("Swarm could not write 1 cookies to the new profile.");
 		await userEvent.click(summary);
 		expect(details).toHaveAttribute("open");
 		expect(details).toHaveTextContent("Some sites may ask you to sign in again.");
@@ -380,7 +380,7 @@ describe("BrowserImportDialog", () => {
 		"unable to open database file",
 		"database is locked",
 		"SQLITE_BUSY: database is locked",
-		"AO couldn't create a temporary copy of Brave's profile database. Fully close Brave, then retry the import.",
+		"Swarm couldn't create a temporary copy of Brave's profile database. Fully close Brave, then retry the import.",
 	])("shows a quiet retry tip above the browser dropdown for %s", async (message) => {
 		const braveSource = { ...source, name: "Brave" };
 		const bridge: AoBridge["browserProfiles"] = {
@@ -484,7 +484,7 @@ describe("BrowserImportDialog", () => {
 			expect(alert).not.toHaveTextContent("Full Disk Access");
 			expect(screen.getByRole("button", { name: "Retry" })).toBeEnabled();
 		} else {
-			expect(alert).toHaveTextContent("Privacy & Security > Full Disk Access, allow AO, then restart AO");
+			expect(alert).toHaveTextContent("Privacy & Security > Full Disk Access, allow Swarm, then restart Swarm");
 			expect(alert).toHaveClass("text-destructive");
 			expect(alert).not.toHaveTextContent("Tip:");
 			expect(screen.getByRole("button", { name: "Start import" })).toBeEnabled();

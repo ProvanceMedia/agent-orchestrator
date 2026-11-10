@@ -129,7 +129,9 @@ together.
 `ao report` persists a worker-originated coordination claim before reporting
 success. Checkpoints, free-form messages, and output-only reports batch until
 another flush or the first report's one-hour fallback. The first `--done`
-report opens a fixed five-minute settlement window. `--needs-input` delivers
+report opens a five-minute settlement window, so other workers' results can
+join one delivery. When no other live worker in the project is active, the
+`--done` report delivers at once. `--needs-input` delivers
 immediately without interrupting current orchestrator work. `--stuck` requests
 an interrupt at most once per worker every three minutes and coalesces equal
 repeats. Reports route to the active project orchestrator at each attempt and
@@ -233,6 +235,15 @@ PR actions are available through `ao pr merge` and
 `ao pr resolve-comments`. Review actions are available through `ao review ls`,
 `ao review trigger` (also `execute` and `restart`), `ao review cancel` (also
 `stop`), and `ao review submit`.
+
+When a review pass that an agent or auto review started records its verdict,
+Swarm queues an information report for the active project orchestrator. The
+report names the PR, the verdict, the reviewer and the head commit, and it is
+due at once. Swarm sends it one time for each review pass. It creates no
+report when the project has no active orchestrator, or when a person started
+the review from the app. `ao session ls` shows the built-in reviewer's verdict
+for the current head as `swarm:<verdict>` in the REVIEW column, next to the
+provider's review decision.
 
 ## Configuration
 

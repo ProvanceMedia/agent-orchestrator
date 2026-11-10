@@ -208,15 +208,15 @@ describe("TeamsSection", () => {
 		mocks.ready = false;
 		mocks.org = undefined;
 		renderSection();
-		expect(screen.getByText("Sign in to AO Cloud to use teams.")).toBeInTheDocument();
+		expect(screen.getByText("Sign in to Swarm Cloud to use teams.")).toBeInTheDocument();
 		expect(document.querySelector("[aria-busy]")).toBeNull();
 	});
 
 	it("says when the workspace couldn't load, with a way to try again", async () => {
 		mocks.org = undefined;
-		mocks.orgError = new Error("Couldn't reach AO Cloud.");
+		mocks.orgError = new Error("Couldn't reach Swarm Cloud.");
 		renderSection();
-		expect(screen.getByRole("alert")).toHaveTextContent("Couldn't reach AO Cloud.");
+		expect(screen.getByRole("alert")).toHaveTextContent("Couldn't reach Swarm Cloud.");
 		await userEvent.click(screen.getByRole("button", { name: "Try again" }));
 		expect(mocks.orgRefetch).toHaveBeenCalled();
 	});
@@ -224,7 +224,7 @@ describe("TeamsSection", () => {
 	it("is quiet against a control plane from before teams", async () => {
 		mocks.teamsError = new CloudCpError("404 page not found", { status: 404 });
 		renderSection();
-		expect(await screen.findByText("Teams aren't available on this AO Cloud yet. Share links still work.")).toBeInTheDocument();
+		expect(await screen.findByText("Teams aren't available on this Swarm Cloud yet. Share links still work.")).toBeInTheDocument();
 		expect(screen.queryByRole("alert")).toBeNull();
 		expect(mocks.calls.filter((call) => call[0] === "listTeams")).toHaveLength(1);
 	});

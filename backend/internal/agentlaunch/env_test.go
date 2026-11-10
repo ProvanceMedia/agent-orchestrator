@@ -161,3 +161,25 @@ func TestProcessEnvForLaunchBinaryAddsNodeForNPMLauncher(t *testing.T) {
 		t.Fatal("process environment was not preserved")
 	}
 }
+
+func TestDisableClaudeAIConnectors(t *testing.T) {
+	env := map[string]string{}
+	DisableClaudeAIConnectors(env, false)
+	if env[EnvClaudeAIConnectors] != "false" {
+		t.Fatalf("%s = %q, want false", EnvClaudeAIConnectors, env[EnvClaudeAIConnectors])
+	}
+
+	// A project that wants the account's connectors sets the value itself.
+	env = map[string]string{EnvClaudeAIConnectors: "true"}
+	DisableClaudeAIConnectors(env, false)
+	if env[EnvClaudeAIConnectors] != "true" {
+		t.Fatalf("%s = %q, want the project value kept", EnvClaudeAIConnectors, env[EnvClaudeAIConnectors])
+	}
+
+	// Where the OS folds env keys, a project value in another case also wins.
+	env = map[string]string{"enable_claudeai_mcp_servers": "1"}
+	DisableClaudeAIConnectors(env, true)
+	if len(env) != 1 || env["enable_claudeai_mcp_servers"] != "1" {
+		t.Fatalf("env = %v, want only the project value", env)
+	}
+}

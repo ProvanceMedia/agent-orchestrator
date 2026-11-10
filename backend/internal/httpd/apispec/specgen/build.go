@@ -99,6 +99,8 @@ func Build() ([]byte, error) {
 			"Local machine readiness checks the desktop app runs before showing the board"),
 		*(&openapi31.Tag{Name: "computer-use"}).WithDescription(
 			"Cua Driver computer-use integration behind Settings and the agents' computer-use tools (loopback only)"),
+		*(&openapi31.Tag{Name: "connections"}).WithDescription(
+			"API keys of third-party services in the macOS keychain, and the agents' passthrough calls (loopback only)"),
 		*(&openapi31.Tag{Name: "link-preview"}).WithDescription(
 			"Server-side unfurl of external links for the CSP-locked renderer"),
 		*(&openapi31.Tag{Name: "github"}).WithDescription(
@@ -514,6 +516,46 @@ var schemaNames = map[string]string{ //nolint:gosec // Public OpenAPI type names
 	"ControllersComputerUseDoctorResponse":     "ComputerUseDoctorResponse",
 	"ComputeruseAgentTool":                     "ComputerUseAgentTool",
 	"ControllersComputerUseAgentToolsResponse": "ComputerUseAgentToolsResponse",
+	// service/connections: Settings > Connections and the connection tools.
+	"ConnectionsField":                        "ConnectionField",
+	"ControllersConnectionResponse":           "ConnectionResponse",
+	"ControllersListConnectionsResponse":      "ListConnectionsResponse",
+	"ControllersConnectConnectionRequest":     "ConnectConnectionRequest",
+	"ControllersConnectionCheckResponse":      "ConnectionCheckResponse",
+	"ControllersConnectionIDParam":            "ConnectionIDParam",
+	"ControllersConnectionAgentTool":          "ConnectionAgentTool",
+	"ControllersConnectionAgentToolsResponse": "ConnectionAgentToolsResponse",
+	"ControllersCallConnectionRequest":        "CallConnectionRequest",
+	"ControllersCallConnectionResponse":       "CallConnectionResponse",
+	"ControllersConnectionAgentToolsQuery":    "ConnectionAgentToolsQuery",
+	// service/mcpconn: the remote MCP servers of Settings > Connections.
+	"McpconnOverview":                      "MCPOverviewResponse",
+	"McpconnConnectionView":                "MCPConnectionView",
+	"McpconnOAuthView":                     "MCPOAuthView",
+	"McpconnTool":                          "MCPTool",
+	"McpconnStoreStatus":                   "MCPStoreStatus",
+	"McpconnApp":                           "MCPApp",
+	"McpconnProjects":                      "MCPProjects",
+	"McpconnCheckInput":                    "MCPCheckRequest",
+	"McpconnCheckResult":                   "MCPCheckResponse",
+	"McpconnPasteResult":                   "MCPPasteResponse",
+	"McpconnRefusal":                       "MCPPasteRefusal",
+	"McpconnCredentialsInput":              "MCPCredentialsRequest",
+	"McpconnHeader":                        "MCPHeader",
+	"McpconnStartResult":                   "MCPOAuthStartResponse",
+	"McpconnProjectsResult":                "MCPProjectsResponse",
+	"McpconnRealTool":                      "MCPRealTool",
+	"McpconnIndexConnection":               "MCPIndexConnection",
+	"ControllersMCPPasteRequest":           "MCPPasteRequest",
+	"ControllersMCPOAuthStartRequest":      "MCPOAuthStartRequest",
+	"ControllersMCPProjectsRequest":        "MCPProjectsRequest",
+	"ControllersMCPRenameRequest":          "MCPRenameRequest",
+	"ControllersMCPConnectionIDParam":      "MCPConnectionIDParam",
+	"ControllersConnectorProjectsResponse": "ConnectorProjectsResponse",
+	"ControllersMCPAgentIndexQuery":        "MCPAgentIndexQuery",
+	"ControllersMCPAgentIndexResponse":     "MCPAgentIndexResponse",
+	"ControllersMCPAgentRequest":           "MCPAgentRequest",
+	"ControllersMCPAgentReply":             "MCPAgentReply",
 	// service/systeminstall: Job backs both StartInstallResponse and
 	// InstallStatusResponse (they're the same Go type), so it reflects to one
 	// shared component — name it after the domain concept, not either alias.
@@ -780,6 +822,8 @@ func operations() []operation {
 	ops = append(ops, cueOperations()...)
 	ops = append(ops, systemOperations()...)
 	ops = append(ops, computerUseOperations()...)
+	ops = append(ops, connectionsOperations()...)
+	ops = append(ops, mcpConnectionsOperations()...)
 	ops = append(ops, identityOperations()...)
 	ops = append(ops, endpointsOperations()...)
 	ops = append(ops, telemetryIdentityOperations()...)
@@ -960,6 +1004,137 @@ func systemOperations() []operation {
 // actions Settings shows, and the tool calls a chat session's `ao mcp` server
 // makes. Every image a call produces is saved to a file; responses carry
 // paths, never base64.
+func connectionsOperations() []operation {
+	id := []any{controllers.ConnectionIDParam{}}
+	checkResps := []respUnit{
+		{http.StatusOK, controllers.ConnectionCheckResponse{}},
+		{http.StatusBadRequest, envelope.APIError{}},
+		{http.StatusForbidden, envelope.APIError{}},
+		{http.StatusNotFound, envelope.APIError{}},
+		{http.StatusConflict, envelope.APIError{}},
+		{http.StatusInternalServerError, envelope.APIError{}},
+		{http.StatusNotImplemented, envelope.APIError{}},
+		{http.StatusServiceUnavailable, envelope.APIError{}},
+	}
+	return []operation{
+		{
+			method: http.MethodGet, path: "/api/v1/connections", id: "listConnections", tag: "connections",
+			summary: "List the services that Swarm can hold an API key for, and which ones are connected; no secret is returned",
+			resps: []respUnit{
+				{http.StatusOK, controllers.ListConnectionsResponse{}},
+				{http.StatusInternalServerError, envelope.APIError{}},
+				{http.StatusNotImplemented, envelope.APIError{}},
+			},
+		},
+		{
+			method: http.MethodPut, path: "/api/v1/connections/{id}", id: "connectConnection", tag: "connections",
+			summary:    "Save a service's key in the macOS keychain and prove it with one cheap call; a failed check puts the old key back",
+			pathParams: id, reqBody: controllers.ConnectConnectionRequest{}, resps: checkResps,
+		},
+		{
+			method: http.MethodPost, path: "/api/v1/connections/{id}/test", id: "testConnection", tag: "connections",
+			summary:    "Prove a saved key again with one cheap call",
+			pathParams: id, resps: checkResps,
+		},
+		{
+			method: http.MethodDelete, path: "/api/v1/connections/{id}", id: "disconnectConnection", tag: "connections",
+			summary:    "Remove a service's key from the keychain",
+			pathParams: id,
+			resps: []respUnit{
+				{http.StatusNoContent, nil},
+				{http.StatusForbidden, envelope.APIError{}},
+				{http.StatusNotFound, envelope.APIError{}},
+				{http.StatusInternalServerError, envelope.APIError{}},
+				{http.StatusNotImplemented, envelope.APIError{}},
+				{http.StatusServiceUnavailable, envelope.APIError{}},
+			},
+		},
+		{
+			method: http.MethodGet, path: "/api/v1/connections/agent-tools", id: "listConnectionAgentTools", tag: "connections",
+			pathParams: []any{controllers.ConnectionAgentToolsQuery{}},
+			summary:    "List the agent tools of the connected services, with their input schemas, for the ao tool server",
+			resps: []respUnit{
+				{http.StatusOK, controllers.ConnectionAgentToolsResponse{}},
+				{http.StatusNotImplemented, envelope.APIError{}},
+			},
+		},
+		{
+			method: http.MethodPost, path: "/api/v1/connections/call", id: "callConnection", tag: "connections",
+			summary: "Make one API call for an agent with the saved key attached, and return the text the agent reads",
+			reqBody: controllers.CallConnectionRequest{},
+			resps: []respUnit{
+				{http.StatusOK, controllers.CallConnectionResponse{}},
+				{http.StatusBadRequest, envelope.APIError{}},
+				{http.StatusForbidden, envelope.APIError{}},
+				{http.StatusNotFound, envelope.APIError{}},
+				{http.StatusInternalServerError, envelope.APIError{}},
+				{http.StatusNotImplemented, envelope.APIError{}},
+				{http.StatusServiceUnavailable, envelope.APIError{}},
+			},
+		},
+	}
+}
+
+func mcpConnectionsOperations() []operation {
+	id := []any{controllers.MCPConnectionIDParam{}}
+	ok := func(body any) []respUnit {
+		return []respUnit{{http.StatusOK, body}, {http.StatusBadRequest, envelope.APIError{}}, {http.StatusNotImplemented, envelope.APIError{}}}
+	}
+	return []operation{
+		{method: http.MethodGet, path: "/api/v1/mcp/connections", id: "listMCPConnections", tag: "connections",
+			summary: "List the remote MCP servers, the known server cards and the projects; no secret is returned",
+			resps:   []respUnit{{http.StatusOK, controllers.MCPOverviewResponse{}}, {http.StatusNotImplemented, envelope.APIError{}}}},
+		{method: http.MethodPost, path: "/api/v1/mcp/check", id: "checkMCPConnection", tag: "connections",
+			summary: "Check link: find what a remote MCP server needs (nothing, a key, or a sign-in) and keep a draft",
+			reqBody: controllers.MCPCheckRequest{}, resps: ok(controllers.MCPCheckResponse{})},
+		{method: http.MethodPost, path: "/api/v1/mcp/paste", id: "pasteMCPConfig", tag: "connections",
+			summary: "Make drafts from a pasted mcpServers config; only URLs and header names are kept",
+			reqBody: controllers.MCPPasteRequest{}, resps: ok(controllers.MCPPasteResponse{})},
+		{method: http.MethodPut, path: "/api/v1/mcp/connections/{id}/credentials", id: "saveMCPCredentials", tag: "connections",
+			summary:    "Save a key or headers after the server accepts them; a refused key keeps the old one",
+			pathParams: id, reqBody: controllers.MCPCredentialsRequest{}, resps: ok(controllers.MCPCheckResponse{})},
+		{method: http.MethodPost, path: "/api/v1/mcp/connections/{id}/oauth/start", id: "startMCPOAuth", tag: "connections",
+			summary:    "Start an OAuth sign-in and return the address to open in the browser",
+			pathParams: id, reqBody: controllers.MCPOAuthStartRequest{}, optionalReqBody: true, resps: ok(controllers.MCPOAuthStartResponse{})},
+		{method: http.MethodPost, path: "/api/v1/mcp/connections/{id}/refresh", id: "refreshMCPTools", tag: "connections",
+			summary:    "Read the tool list of a remote MCP server again",
+			pathParams: id, resps: ok(controllers.MCPCheckResponse{})},
+		{method: http.MethodPut, path: "/api/v1/mcp/connections/{id}/projects", id: "setMCPProjects", tag: "connections",
+			summary:    "Choose which projects can use a remote MCP server; the connection becomes active here",
+			pathParams: id, reqBody: controllers.MCPProjectsRequest{}, resps: ok(controllers.MCPProjectsResponse{})},
+		{method: http.MethodPatch, path: "/api/v1/mcp/connections/{id}", id: "renameMCPConnection", tag: "connections",
+			summary:    "Rename a remote MCP server; agents use the name",
+			pathParams: id, reqBody: controllers.MCPRenameRequest{}, resps: ok(controllers.MCPProjectsResponse{})},
+		{method: http.MethodDelete, path: "/api/v1/mcp/connections/{id}", id: "removeMCPConnection", tag: "connections",
+			summary:    "Remove a remote MCP server and its credentials",
+			pathParams: id, resps: []respUnit{{http.StatusNoContent, nil}, {http.StatusNotFound, envelope.APIError{}}, {http.StatusConflict, envelope.APIError{}}, {http.StatusNotImplemented, envelope.APIError{}}}},
+		{method: http.MethodGet, path: "/api/v1/connections/projects", id: "listConnectorProjects", tag: "connections",
+			summary: "List which projects can use each key-based service; GitHub stays available to every project",
+			resps:   []respUnit{{http.StatusOK, controllers.ConnectorProjectsResponse{}}, {http.StatusConflict, envelope.APIError{}}, {http.StatusNotImplemented, envelope.APIError{}}}},
+		{method: http.MethodPut, path: "/api/v1/connections/{id}/projects", id: "setConnectorProjects", tag: "connections",
+			summary:    "Choose which projects can use a key-based service",
+			pathParams: []any{controllers.ConnectionIDParam{}}, reqBody: controllers.MCPProjectsRequest{},
+			resps: []respUnit{{http.StatusNoContent, nil}, {http.StatusBadRequest, envelope.APIError{}}, {http.StatusNotFound, envelope.APIError{}}, {http.StatusConflict, envelope.APIError{}}, {http.StatusNotImplemented, envelope.APIError{}}}},
+		{method: http.MethodGet, path: "/api/v1/mcp/agent/index", id: "getMCPAgentIndex", tag: "connections",
+			summary:    "The real tools of a session's project, for the ao tool server; only the version when it is unchanged",
+			pathParams: []any{controllers.MCPAgentIndexQuery{}},
+			resps:      []respUnit{{http.StatusOK, controllers.MCPAgentIndexResponse{}}, {http.StatusNotImplemented, envelope.APIError{}}}},
+		{method: http.MethodPost, path: "/api/v1/mcp/agent/list", id: "listMCPAgentConnections", tag: "connections",
+			summary: "connections_list: the MCP connections granted to a session's project",
+			reqBody: controllers.MCPAgentRequest{}, resps: ok(controllers.MCPAgentReply{})},
+		{method: http.MethodPost, path: "/api/v1/mcp/agent/tools", id: "listMCPAgentTools", tag: "connections",
+			summary: "connection_tools: the tools of one MCP connection, with secrets removed",
+			reqBody: controllers.MCPAgentRequest{}, resps: ok(controllers.MCPAgentReply{})},
+		{method: http.MethodPost, path: "/api/v1/mcp/agent/call", id: "callMCPAgentTool", tag: "connections",
+			summary: "connection_call: call one remote tool with the credential added and secrets removed from the result",
+			reqBody: controllers.MCPAgentRequest{}, resps: ok(controllers.MCPAgentReply{})},
+		{method: http.MethodGet, path: "/api/v1/mcp-oauth/callback", id: "finishMCPOAuth", tag: "connections",
+			summary:      "The browser's redirect back from an MCP sign-in server; answers an HTML page",
+			resps:        []respUnit{{http.StatusOK, ""}, {http.StatusBadRequest, ""}, {http.StatusNotImplemented, envelope.APIError{}}},
+			contentTypes: map[int]string{http.StatusOK: "text/html", http.StatusBadRequest: "text/html"}},
+	}
+}
+
 func computerUseOperations() []operation {
 	statusResps := []respUnit{
 		{http.StatusOK, controllers.ComputerUseStatusResponse{}},

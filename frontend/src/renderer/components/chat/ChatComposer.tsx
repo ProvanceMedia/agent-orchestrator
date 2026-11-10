@@ -685,7 +685,7 @@ export const ChatComposer = memo(function ChatComposer({
 				name: "compact",
 				displayName: "compact",
 				description: "Summarize earlier history to reclaim context",
-				source: "AO",
+				source: "Swarm",
 			},
 			...skills.filter((skill) => skill.name !== "compact"),
 		];

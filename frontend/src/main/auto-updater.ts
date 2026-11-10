@@ -41,6 +41,7 @@ import {
 import {
   describeUpdateFailure,
   isManifest404Error,
+  isNoPublishedReleasesError,
   looksLikeRawUpdateError,
   updateErrorText,
   userFacingUpdateError,
@@ -249,7 +250,7 @@ function requiredFreeBytesToStage(archiveBytes: number | undefined): number {
   return Math.min(STAGE_FREE_BYTES_CAP, Math.max(STAGE_FREE_BYTES_FLOOR, derived));
 }
 // Short user-facing lines; the raw ditto/pkzip/codesign detail is logged, not shown.
-const STAGE_STALL_MESSAGE = "Couldn't finish preparing the update. AO stayed open. Relaunch AO to try again.";
+const STAGE_STALL_MESSAGE = "Couldn't finish preparing the update. Swarm stayed open. Relaunch Swarm to try again.";
 const STAGE_DISK_MESSAGE = "Not enough disk space to install the update. Free up space, then try again.";
 let nativePreparationBlocked: Error | undefined;
 // A stage refused by the disk preflight. Unlike a stall nothing reached
@@ -536,7 +537,7 @@ function nativeStagingWasLost(): boolean {
 function discardLostNativeStaging(): boolean {
   if (!nativeStagingWasLost()) return false;
   recordUpdateDiagnostic("native-staging-lost", { version: stagedVersion });
-  const failure = new Error("The staged update files are missing. AO is checking for a fresh update. Confirm installation again when it is ready.");
+  const failure = new Error("The staged update files are missing. Swarm is checking for a fresh update. Confirm installation again when it is ready.");
   const restartWasRequested = updateRestartRequested;
   discardStagedBuild();
   updateRestartRequested = false;
@@ -1249,7 +1250,7 @@ function unavailableChannelStatus(version?: string): UpdateStatus {
       semver.lt(version, app.getVersion())) {
     return {
       state: "unsupported",
-      message: "This channel's latest release is older than the installed build. AO will switch when a newer release is available.",
+      message: "This channel's latest release is older than the installed build. Swarm will switch when a newer release is available.",
     };
   }
   return { state: "not-available" };
@@ -1368,6 +1369,20 @@ type UpdateCheckOutcome = Awaited<ReturnType<typeof autoUpdater.checkForUpdates>
 
 const UPDATE_CHECK_TIMEOUT_MS = 60_000;
 const UPDATE_CHECK_TIMEOUT_MESSAGE = "Update check timed out. The update service did not respond in time. Try again.";
+const NO_PUBLISHED_RELEASES_MESSAGE = "This build has no published releases to update from. A new version comes as a local install.";
+
+// A feed with no release is an answer: the check succeeded and found nothing to
+// install. Without this, each automatic check counted a failure, and after
+// three the sidebar showed "Update check failed" for good.
+function settleNoPublishedReleases(): void {
+  consecutiveAutomaticNetFailures = 0;
+  consecutiveAutomaticCheckFailures = 0;
+  failingChecksPublished = false;
+  broadcastCompletedCheck(
+    hasStagedBuild() ? stagedDownloadedStatus() : { state: "unsupported", message: NO_PUBLISHED_RELEASES_MESSAGE },
+    true,
+  );
+}
 
 // electron-updater owns this executor but omits it from its public declarations.
 // Limit the adapter to metadata requests; downloads retain their own cancellation.
@@ -1411,6 +1426,12 @@ async function checkForUpdatesWithDeadline(): Promise<UpdateCheckOutcome> {
   try {
     return await autoUpdater.checkForUpdates();
   } catch (err) {
+    if (!timedOut && isNoPublishedReleasesError(err)) {
+      // The "error" event usually settled the status already. A reject-only
+      // failure still has to leave "checking".
+      if (lastStatus.state === "checking") settleNoPublishedReleases();
+      return null;
+    }
     throw timedOut ? new Error(UPDATE_CHECK_TIMEOUT_MESSAGE) : err;
   } finally {
     clearTimeout(timer);
@@ -2254,6 +2275,11 @@ function wireUpdaterEvents(): void {
     }
     recordUpdateDiagnostic("electron-updater-error", {}, err);
     clearDownloadStallWatchdog();
+    if (activeUpdaterPhase === "check" && isNoPublishedReleasesError(err)) {
+      console.info("update feed has no published releases; nothing to update from");
+      settleNoPublishedReleases();
+      return;
+    }
     if (handleMacStagingFailure(err)) {
       emitUpdateFailure(err);
       return;
@@ -2355,11 +2381,11 @@ function wireUpdaterEvents(): void {
           message:
             exhausted
               ? "Couldn't install the update — the copy failed verification twice. " +
-                "AO has discarded the download and stopped retrying on its own. Check " +
+                "Swarm has discarded the download and stopped retrying on its own. Check " +
                 "for updates again to start a fresh one, or download the latest build " +
                 "manually and install it over this one."
               : "Couldn't install the update — the downloaded copy failed verification. " +
-                "AO will prepare it again on the next check.",
+                "Swarm will prepare it again on the next check.",
         }),
       );
       return;
@@ -2979,9 +3005,9 @@ export function getMacInstallBlocker(): string | undefined {
   if (!bundle.endsWith(".app")) return undefined;
   if (bundle.includes("/AppTranslocation/")) {
     return (
-      "macOS is running Orchestrator from a temporary read-only location " +
+      "macOS is running Swarm from a temporary read-only location " +
       "because it was opened straight from where it was downloaded. Quit the app, " +
-      "move Orchestrator into /Applications, reopen it from there, and " +
+      "move Swarm into /Applications, reopen it from there, and " +
       "then restart to update."
     );
   }
@@ -2994,9 +3020,9 @@ export function getMacInstallBlocker(): string | undefined {
     // Deliberately does NOT say "move it to /Applications": the app may already
     // be there, and telling someone to do what they have done reads as a bug.
     return (
-      "The update can't be installed because Orchestrator's location isn't " +
+      "The update can't be installed because Swarm's location isn't " +
       `writable: ${path.dirname(bundle)}. Fix that folder's permissions, or move ` +
-      "Orchestrator somewhere you can write to, reopen it, and then " +
+      "Swarm somewhere you can write to, reopen it, and then " +
       "restart to update."
     );
   }
@@ -3094,7 +3120,7 @@ export async function quitAndInstallUpdate(confirmedVersion?: string): Promise<U
   }
   if (discardLostNativeStaging()) {
     if (escalationStateDir) void runAutomaticUpdateCheck(escalationStateDir);
-    throw new Error("The staged update files are missing. AO is checking for a fresh update. Confirm installation again when it is ready.");
+    throw new Error("The staged update files are missing. Swarm is checking for a fresh update. Confirm installation again when it is ready.");
   }
   if (macRestartPreparation) return macRestartPreparation;
   let confirmation: UpdateInstallResult;
@@ -3154,7 +3180,7 @@ export async function quitAndInstallUpdate(confirmedVersion?: string): Promise<U
       assertInstallActive();
       recordUpdateDiagnostic("quit-and-install", { version });
       autoUpdater.quitAndInstall(false, true);
-      if (!updateRestartRequested) throw nativePreparationError ?? new Error("The installer could not restart AO.");
+      if (!updateRestartRequested) throw nativePreparationError ?? new Error("The installer could not restart Swarm.");
     } catch (err) {
       if (installAbandoned) {
         await progress?.fail(userFacingUpdateError(err, "install")).catch(() => undefined);
@@ -3267,7 +3293,7 @@ export async function ensureUpdatePrefs(stateDir: string): Promise<void> {
     buttons: ["Enable auto-updates", "Not now"],
     defaultId: 0,
     cancelId: 1,
-    message: "Keep Orchestrator up to date automatically?",
+    message: "Keep Swarm up to date automatically?",
     detail: "You can change this later in Settings.",
   });
   if (optIn.response !== 0) {

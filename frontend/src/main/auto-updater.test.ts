@@ -527,7 +527,7 @@ describe("startAutoUpdates", () => {
       updaterEvents.get("update-downloaded")?.({ version: "2.1.0" });
       await flushMicrotasks();
       const failure = new Error(
-        "ditto: Could not lstat /Users/test/Library/Caches/dev.agent-orchestrator.desktop.ShipIt/update.abc/Agent Orchestrator.app/Contents/Resources/acp-runtime/node_modules/.bin/node-which: No such file or directory",
+        "ditto: Could not lstat /Users/test/Library/Caches/com.provancemedia.swarm3.ShipIt/update.abc/Swarm 3.0.app/Contents/Resources/acp-runtime/node_modules/.bin/node-which: No such file or directory",
       );
       updaterEvents.get("error")?.(failure);
       nativeAutoUpdater.emit("error", failure);
@@ -1872,6 +1872,49 @@ describe("startAutoUpdates", () => {
         "Couldn't check for updates — the update information was not found on the server.",
       errorInfo: { kind: "not-found", phase: "check" },
     });
+  });
+
+  it("reports a feed with no release as no update, not as a failure", async () => {
+    vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { module, autoUpdater, updaterEvents } = await importAutoUpdater();
+    const noReleases = () =>
+      Object.assign(new Error("No published versions on GitHub"), { code: "ERR_XML_MISSED_ELEMENT" });
+    autoUpdater.checkForUpdates.mockImplementation(() => {
+      const err = noReleases();
+      updaterEvents.get("error")?.(err);
+      return Promise.reject(err);
+    });
+
+    // Three automatic checks made the sidebar show "Update check failed".
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      await module.startAutoUpdates(stateDir);
+    }
+    expect(module.getUpdateStatus().checksFailing).toBeUndefined();
+    expect(module.getUpdateStatus()).toEqual(expect.objectContaining({
+      state: "unsupported",
+      message: "This build has no published releases to update from. A new version comes as a local install.",
+    }));
+
+    await module.checkForUpdatesNow(stateDir);
+    expect(module.getUpdateStatus()).toEqual(expect.objectContaining({ state: "unsupported" }));
+    expect(module.getUpdateStatus().checksFailing).toBeUndefined();
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  it("settles a manual check whose feed has no release and that only rejects", async () => {
+    vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const { module, autoUpdater } = await importAutoUpdater();
+    autoUpdater.checkForUpdates.mockRejectedValueOnce(
+      Object.assign(new Error("No published versions on GitHub"), { code: "ERR_UPDATER_NO_PUBLISHED_VERSIONS" }),
+    );
+
+    await module.checkForUpdatesNow(stateDir);
+
+    expect(module.getUpdateStatus()).toEqual(expect.objectContaining({
+      state: "unsupported",
+      message: "This build has no published releases to update from. A new version comes as a local install.",
+    }));
   });
 
   it("broadcasts friendly error on rejected downloadUpdateNow with manifest 404", async () => {
@@ -3567,7 +3610,7 @@ function stubProcess(platform: NodeJS.Platform, execPath: string): () => void {
 
 // Builds a real bundle-shaped tree so the writability checks run against the
 // filesystem rather than a stub. Returns the exec path inside it.
-function makeBundle(name = "Agent Orchestrator.app"): { root: string; bundle: string; execPath: string } {
+function makeBundle(name = "Swarm 3.0.app"): { root: string; bundle: string; execPath: string } {
   const root = mkdtempSync(nodePath.join(os.tmpdir(), "ao-updater-perm-"));
   const bundle = nodePath.join(root, name);
   mkdirSync(nodePath.join(bundle, "Contents", "MacOS"), { recursive: true });
@@ -3579,7 +3622,7 @@ function makeBundle(name = "Agent Orchestrator.app"): { root: string; bundle: st
 }
 
 const TRANSLOCATED_EXEC_PATH =
-  "/private/var/folders/hg/vkmz93d1T/T/AppTranslocation/0AC4-11EE/d/Agent Orchestrator.app/Contents/MacOS/agent-orchestrator";
+  "/private/var/folders/hg/vkmz93d1T/T/AppTranslocation/0AC4-11EE/d/Swarm 3.0.app/Contents/MacOS/agent-orchestrator";
 
 describe("quitAndInstallUpdate", () => {
   afterEach(() => {
@@ -3654,8 +3697,8 @@ describe("quitAndInstallUpdate", () => {
     const restore = stubProcess("darwin", bundle.execPath);
     vi.spyOn(os, "homedir").mockReturnValue(bundle.root);
     const setIntervalSpy = vi.spyOn(globalThis, "setInterval");
-    const shipIt = nodePath.join(bundle.root, "Library", "Caches", "dev.agent-orchestrator.desktop.ShipIt");
-    const extracted = nodePath.join(shipIt, "update.fixture", "Agent Orchestrator.app", "Contents");
+    const shipIt = nodePath.join(bundle.root, "Library", "Caches", "com.provancemedia.swarm3.ShipIt");
+    const extracted = nodePath.join(shipIt, "update.fixture", "Swarm 3.0.app", "Contents");
     mkdirSync(extracted, { recursive: true });
     writeFileSync(nodePath.join(shipIt, "ShipItState.plist"), "fixture");
     writeFileSync(nodePath.join(extracted, "Info.plist"), "fixture");
@@ -3685,8 +3728,8 @@ describe("quitAndInstallUpdate", () => {
     const bundle = makeBundle();
     const restore = stubProcess("darwin", bundle.execPath);
     vi.spyOn(os, "homedir").mockReturnValue(bundle.root);
-    const shipIt = nodePath.join(bundle.root, "Library", "Caches", "dev.agent-orchestrator.desktop.ShipIt");
-    const extracted = nodePath.join(shipIt, "update.fixture", "Agent Orchestrator.app", "Contents");
+    const shipIt = nodePath.join(bundle.root, "Library", "Caches", "com.provancemedia.swarm3.ShipIt");
+    const extracted = nodePath.join(shipIt, "update.fixture", "Swarm 3.0.app", "Contents");
     try {
       const { module, autoUpdater, updaterEvents } = await importAutoUpdater();
       await module.startAutoUpdates(stateDir);
@@ -3721,8 +3764,8 @@ describe("quitAndInstallUpdate", () => {
     const bundle = makeBundle();
     const restore = stubProcess("darwin", bundle.execPath);
     vi.spyOn(os, "homedir").mockReturnValue(bundle.root);
-    const shipIt = nodePath.join(bundle.root, "Library", "Caches", "dev.agent-orchestrator.desktop.ShipIt");
-    const extracted = nodePath.join(shipIt, "update.fixture", "Agent Orchestrator.app", "Contents");
+    const shipIt = nodePath.join(bundle.root, "Library", "Caches", "com.provancemedia.swarm3.ShipIt");
+    const extracted = nodePath.join(shipIt, "update.fixture", "Swarm 3.0.app", "Contents");
     mkdirSync(extracted, { recursive: true });
     writeFileSync(nodePath.join(shipIt, "ShipItState.plist"), "fixture");
     writeFileSync(nodePath.join(extracted, "Info.plist"), "fixture");
@@ -3761,8 +3804,8 @@ describe("quitAndInstallUpdate", () => {
     const restore = stubProcess("darwin", bundle.execPath);
     vi.spyOn(os, "homedir").mockReturnValue(bundle.root);
     const setIntervalSpy = vi.spyOn(globalThis, "setInterval");
-    const shipIt = nodePath.join(bundle.root, "Library", "Caches", "dev.agent-orchestrator.desktop.ShipIt");
-    const extracted = nodePath.join(shipIt, "update.fixture", "Agent Orchestrator.app", "Contents");
+    const shipIt = nodePath.join(bundle.root, "Library", "Caches", "com.provancemedia.swarm3.ShipIt");
+    const extracted = nodePath.join(shipIt, "update.fixture", "Swarm 3.0.app", "Contents");
     mkdirSync(extracted, { recursive: true });
     writeFileSync(nodePath.join(shipIt, "ShipItState.plist"), "fixture");
     writeFileSync(nodePath.join(extracted, "Info.plist"), "fixture");
@@ -3801,8 +3844,8 @@ describe("quitAndInstallUpdate", () => {
     const bundle = makeBundle();
     const restore = stubProcess("darwin", bundle.execPath);
     vi.spyOn(os, "homedir").mockReturnValue(bundle.root);
-    const shipIt = nodePath.join(bundle.root, "Library", "Caches", "dev.agent-orchestrator.desktop.ShipIt");
-    const extracted = nodePath.join(shipIt, "update.fixture", "Agent Orchestrator.app", "Contents");
+    const shipIt = nodePath.join(bundle.root, "Library", "Caches", "com.provancemedia.swarm3.ShipIt");
+    const extracted = nodePath.join(shipIt, "update.fixture", "Swarm 3.0.app", "Contents");
     mkdirSync(extracted, { recursive: true });
     writeFileSync(nodePath.join(shipIt, "ShipItState.plist"), "fixture");
     writeFileSync(nodePath.join(extracted, "Info.plist"), "fixture");
@@ -4016,7 +4059,7 @@ describe("quitAndInstallUpdate", () => {
         updaterEvents.get("update-downloaded")?.({ version: "2.1.0" });
         return transfer.promise;
       });
-      const assertion = expect(module.quitAndInstallUpdate()).rejects.toThrow(/Relaunch AO/);
+      const assertion = expect(module.quitAndInstallUpdate()).rejects.toThrow(/Relaunch Swarm/);
       await flushMicrotasks();
       await vi.advanceTimersByTimeAsync(180_000);
       await assertion;
@@ -4591,7 +4634,7 @@ describe("channel downgrade safety", () => {
 // so the retry never re-downloads and never re-verifies.
 describe("staged install rejection", () => {
   const rejection = new Error(
-    "Code signature at URL file:///Users/x/Library/Caches/dev.agent-orchestrator.desktop.ShipIt/" +
+    "Code signature at URL file:///Users/x/Library/Caches/com.provancemedia.swarm3.ShipIt/" +
       "update.M9ZvE0X/Agent%20Orchestrator.app/ did not pass validation: " +
       "code failed to satisfy specified code requirement(s)",
   );
@@ -4860,7 +4903,7 @@ describe("staged install rejection", () => {
     updaterEvents.get("error")?.(
       new Error(
         "Code signature at URL file:///Users/graycup/Library/Caches/" +
-          "dev.agent-orchestrator.desktop.ShipIt/update.lmaIGgc/Agent%20Orchestrator.app/ " +
+          "com.provancemedia.swarm3.ShipIt/update.lmaIGgc/Agent%20Orchestrator.app/ " +
           "did not pass validation: code object is not signed at all",
       ),
     );
@@ -4884,7 +4927,7 @@ describe("staged install rejection", () => {
     updaterEvents.get("error")?.(
       new Error(
         "Failed to get static code for bundle file:///Users/x/Library/Caches/" +
-          "dev.agent-orchestrator.desktop.ShipIt/update.M9ZvE0X/Agent%20Orchestrator.app/",
+          "com.provancemedia.swarm3.ShipIt/update.M9ZvE0X/Agent%20Orchestrator.app/",
       ),
     );
 
@@ -4907,7 +4950,7 @@ describe("staged install rejection", () => {
     updaterEvents.get("error")?.(
       new Error(
         "EACCES: permission denied, open '/Users/x/Library/Caches/" +
-          "dev.agent-orchestrator.desktop.ShipIt/ShipItState.plist'",
+          "com.provancemedia.swarm3.ShipIt/ShipItState.plist'",
       ),
     );
 
@@ -5083,8 +5126,8 @@ it("recovers a timed-out native preparation when its native success arrives late
     updaterEvents.get("update-downloaded")?.({ version: "2.0.0" });
     await vi.advanceTimersByTimeAsync(3 * 60_000);
     expect(module.getUpdateStatus()).toMatchObject({ state: "error", staged: { ready: false } });
-    expect(module.getUpdateStatus().message).toContain("Relaunch AO");
-    await expect(module.quitAndInstallUpdate()).rejects.toThrow(/Relaunch AO/);
+    expect(module.getUpdateStatus().message).toContain("Relaunch Swarm");
+    await expect(module.quitAndInstallUpdate()).rejects.toThrow(/Relaunch Swarm/);
     expect(autoUpdater.quitAndInstall).not.toHaveBeenCalled();
     nativeUpdaterEvents.get("update-downloaded")?.({}, "notes", "2.0.0");
     expect(module.getUpdateStatus().state).toBe("downloaded");

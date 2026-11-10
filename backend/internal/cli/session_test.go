@@ -301,6 +301,57 @@ func TestSessionList_EnrichesPRColumnsAndKeepsFallbackFacts(t *testing.T) {
 	}
 }
 
+// The built-in reviewer's verdict shows in the REVIEW column next to the
+// provider decision, and the provider decision stays unchanged in JSON.
+func TestSessionList_ShowsBuiltInReviewVerdict(t *testing.T) {
+	cfg := setConfigEnv(t)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/v1/sessions":
+			if r.URL.Query().Get("active") == "false" {
+				_, _ = io.WriteString(w, `{"sessions":[]}`)
+				return
+			}
+			_, _ = io.WriteString(w, `{"sessions":[
+				{"id":"rv-1","projectId":"demo","kind":"worker","activity":{"state":"idle","lastActivityAt":"2026-06-02T11:55:00Z"},"isTerminated":false,"createdAt":"2026-06-02T11:00:00Z","updatedAt":"2026-06-02T12:00:00Z","status":"idle","prs":[{"number":7,"ci":"passing","review":"none"}]},
+				{"id":"rv-2","projectId":"demo","kind":"worker","activity":{"state":"idle","lastActivityAt":"2026-06-02T11:55:00Z"},"isTerminated":false,"createdAt":"2026-06-02T11:00:00Z","updatedAt":"2026-06-02T12:00:00Z","status":"idle","prs":[{"number":8,"ci":"passing","review":"review_required"}]}
+			]}`)
+		case "/api/v1/sessions/rv-1/pr":
+			_, _ = io.WriteString(w, `{"sessionId":"rv-1","prs":[{"number":7,"ci":{"state":"passing"},"review":{"decision":"none","aoVerdict":"approved"}}]}`)
+		case "/api/v1/sessions/rv-2/pr":
+			_, _ = io.WriteString(w, `{"sessionId":"rv-2","prs":[{"number":8,"ci":{"state":"passing"},"review":{"decision":"review_required","aoVerdict":"changes_requested"}}]}`)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(srv.Close)
+	writeRunFileFor(t, cfg, srv)
+
+	deps := Deps{ProcessAlive: func(int) bool { return true }, Now: func() time.Time { return time.Date(2026, 6, 2, 12, 5, 0, 0, time.UTC) }}
+	out, errOut, err := executeCLI(t, deps, "session", "ls", "--project", "demo")
+	if err != nil {
+		t.Fatalf("session ls failed: %v\nstderr=%s", err, errOut)
+	}
+	for _, want := range []string{"swarm:approved", "review_required+swarm:changes_requested"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("output missing %q:\n%s", want, out)
+		}
+	}
+
+	out, errOut, err = executeCLI(t, deps, "session", "ls", "--project", "demo", "--json")
+	if err != nil {
+		t.Fatalf("session ls --json failed: %v\nstderr=%s", err, errOut)
+	}
+	var got sessionListOutput
+	if err := json.Unmarshal([]byte(out), &got); err != nil {
+		t.Fatalf("decode JSON: %v\noutput=%s", err, out)
+	}
+	if pr := got.Data[0].PRs[0]; pr.Review != "none" || pr.AOReview != "approved" {
+		t.Fatalf("rv-1 PR = %#v, want review none and aoReview approved", pr)
+	}
+}
+
 func TestSessionList_ThreadCountUnknownVersusObservedZero(t *testing.T) {
 	cfg := setConfigEnv(t)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -1101,7 +1101,7 @@ export function Sidebar({
 					<span
 						className="sidebar-expanded-chrome min-w-0 flex-1 truncate text-base font-semibold leading-tight tracking-tight-lg text-foreground group-data-[collapsible=icon]:hidden"
 					>
-						<BuildInfoTooltip>Orchestrator</BuildInfoTooltip>
+						<BuildInfoTooltip>Swarm</BuildInfoTooltip>
 					</span>
 				</Pressable>
 				<Tooltip>
@@ -3096,7 +3096,7 @@ function CloudAccountRow({ tabIndex }: { tabIndex: number }) {
 			<DropdownMenuTrigger asChild>
 				<Pressable
 					aria-label={t("shell.signedInAs", {
-						email: session?.user.email ?? "AO Cloud",
+						email: session?.user.email ?? "Swarm Cloud",
 					})}
 					className={FOOTER_NAV_BUTTON_CLASS}
 					tabIndex={tabIndex}
@@ -3132,7 +3132,7 @@ function CloudAccountRow({ tabIndex }: { tabIndex: number }) {
 function accountName(user: { displayName?: string; email?: string } | undefined): string {
 	const display = user?.displayName?.trim();
 	if (display && display !== user?.email) return display;
-	return user?.email ?? "AO Cloud";
+	return user?.email ?? "Swarm Cloud";
 }
 
 /** The profile picture from the sign-in provider, or the person's initials. */
@@ -3173,7 +3173,7 @@ function CloudAccountRailButton({ tabIndex }: { tabIndex: number }) {
 			<TooltipTrigger asChild>
 				<Pressable
 					aria-label={t("shell.signedInAs", {
-						email: session?.user.email ?? "AO Cloud",
+						email: session?.user.email ?? "Swarm Cloud",
 					})}
 					className={FOOTER_RAIL_BUTTON_CLASS}
 					onClick={() => void signOut()}
@@ -3188,7 +3188,7 @@ function CloudAccountRailButton({ tabIndex }: { tabIndex: number }) {
 			</TooltipTrigger>
 			<TooltipContent side="right">
 				{t("shell.signOutWithEmail", {
-					email: session?.user.email ?? "AO Cloud",
+					email: session?.user.email ?? "Swarm Cloud",
 				})}
 			</TooltipContent>
 		</Tooltip>

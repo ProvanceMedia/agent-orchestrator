@@ -1,9 +1,9 @@
-import aoLogo from "../../assets/ao-qr-logo.png";
+import swarmLogo from "../../assets/swarm-qr-logo.png";
 
 /**
  * The logo drawn in the middle of a QR code, decoded once for the whole app:
- * Ruto from the mobile app's icon, without the tile, so it sits clean on the
- * code's white paper and reads as "scan me with that app".
+ * the Swarm wasp mark without its tile, so it sits clean on the code's white
+ * paper.
  *
  * It starts loading when the QR module is first imported, long before a code
  * is drawn, so the first code a user sees already has its logo. A canvas can
@@ -23,7 +23,7 @@ export function preloadQrLogo(): void {
 		for (const callback of waiting) callback();
 		waiting.clear();
 	};
-	next.src = aoLogo;
+	next.src = swarmLogo;
 	image = next;
 }
 

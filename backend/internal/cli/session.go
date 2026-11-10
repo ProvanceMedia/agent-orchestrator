@@ -108,6 +108,7 @@ type sessionPRSummaryDTO struct {
 		// response unknown rather than decoding absence as a known zero.
 		Decision              string `json:"decision"`
 		UnresolvedThreadCount *int   `json:"unresolvedThreadCount"`
+		AOVerdict             string `json:"aoVerdict"`
 	} `json:"review"`
 }
 
@@ -203,10 +204,13 @@ type sessionListEntry struct {
 }
 
 type sessionListPR struct {
-	Number  int    `json:"number"`
-	CI      string `json:"ci,omitempty"`
-	Review  string `json:"review,omitempty"`
-	Threads *int   `json:"threads"`
+	Number int    `json:"number"`
+	CI     string `json:"ci,omitempty"`
+	Review string `json:"review,omitempty"`
+	// AOReview is the built-in reviewer's verdict for the PR's current head.
+	// Review stays the SCM provider's decision.
+	AOReview string `json:"aoReview,omitempty"`
+	Threads  *int   `json:"threads"`
 }
 
 type sessionListOutput struct {
@@ -336,7 +340,7 @@ func newSessionExitAgentCommand(ctx *commandContext) *cobra.Command {
 	var opts sessionOptions
 	cmd := &cobra.Command{
 		Use:   "exit-agent <id>",
-		Short: "Exit an agent without terminating its AO session",
+		Short: "Exit an agent without terminating its Swarm session",
 		Args:  oneSessionIDArg,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id, err := normalizeSessionID(args[0])
@@ -355,7 +359,7 @@ func newSessionResumeAgentCommand(ctx *commandContext) *cobra.Command {
 	var opts sessionOptions
 	cmd := &cobra.Command{
 		Use:   "resume-agent <id>",
-		Short: "Resume an exited agent in its existing AO session",
+		Short: "Resume an exited agent in its existing Swarm session",
 		Args:  oneSessionIDArg,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id, err := normalizeSessionID(args[0])
@@ -410,7 +414,7 @@ func newSessionDeleteCommand(ctx *commandContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "delete <id>",
 		Short: "Permanently delete a terminated session",
-		Long: "Permanently delete a terminated session's record and its AO history (conversation, PR facts, attachments and artifacts). " +
+		Long: "Permanently delete a terminated session's record and its Swarm history (conversation, PR facts, attachments and artifacts). " +
 			"The session must be terminated and its worktree cleaned up first (ao session cleanup, or --cleanup). Git branches, pull requests and agent account usage totals are kept.",
 		Args: oneSessionIDArg,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -434,7 +438,7 @@ func newSessionClaimPRCommand(ctx *commandContext) *cobra.Command {
 		Short: "Attach an existing PR to a session",
 		Long: "Attach an existing PR to a session. When session-id is omitted, the current session is read from AO_SESSION_ID.\n\n" +
 			"Claiming updates PR ownership metadata only; it does not check out the PR branch. Verify the workspace branch and HEAD before editing.",
-		Example: `  # From inside an AO worker session
+		Example: `  # From inside a Swarm worker session
   ao session claim-pr 88
 
   # Target a session explicitly
@@ -1019,7 +1023,7 @@ func listPRsForSession(sess sessionDTO, summaries []sessionPRSummaryDTO) []sessi
 			// Threads stays nil (rendered as "-") when the daemon did not
 			// publish a count: an older daemon or an only-partially observed
 			// thread snapshot must read as unknown, not zero.
-			out = append(out, sessionListPR{Number: pr.Number, CI: pr.CI.State, Review: pr.Review.Decision, Threads: pr.Review.UnresolvedThreadCount})
+			out = append(out, sessionListPR{Number: pr.Number, CI: pr.CI.State, Review: pr.Review.Decision, AOReview: pr.Review.AOVerdict, Threads: pr.Review.UnresolvedThreadCount})
 		}
 		return out
 	}
@@ -1114,7 +1118,7 @@ func sessionPRColumns(sess sessionDTO, summaries []sessionPRSummaryDTO) (prNumbe
 	for _, pr := range prs {
 		prValues = append(prValues, fmt.Sprintf("#%d", pr.Number))
 		ciValues = append(ciValues, emptyDash(pr.CI))
-		reviewValues = append(reviewValues, emptyDash(pr.Review))
+		reviewValues = append(reviewValues, reviewColumn(pr))
 		if pr.Threads == nil {
 			threadsKnown = false
 			continue
@@ -1126,6 +1130,19 @@ func sessionPRColumns(sess sessionDTO, summaries []sessionPRSummaryDTO) (prNumbe
 		threads = fmt.Sprintf("%d", threadCount)
 	}
 	return strings.Join(prValues, ","), strings.Join(ciValues, ","), strings.Join(reviewValues, ","), threads
+}
+
+// reviewColumn shows the SCM provider's decision and, when the built-in
+// reviewer has a verdict for the current head, that verdict as swarm:<verdict>.
+// The provider decision is kept because branch protection reads only it.
+func reviewColumn(pr sessionListPR) string {
+	if pr.AOReview == "" {
+		return emptyDash(pr.Review)
+	}
+	if pr.Review == "" || pr.Review == "none" {
+		return "swarm:" + pr.AOReview
+	}
+	return pr.Review + "+swarm:" + pr.AOReview
 }
 
 func emptyDash(value string) string {

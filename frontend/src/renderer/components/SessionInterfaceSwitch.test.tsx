@@ -122,7 +122,7 @@ describe("SessionInterfaceSwitchButton", () => {
 
 	it("replaces progress with a non-interactive warning when target shutdown is unconfirmed", () => {
 		const detail =
-			"AO could not confirm the target controller stopped. Restart AO to retry shutdown before restoring the original interface.";
+			"Swarm could not confirm the target controller stopped. Restart Swarm to retry shutdown before restoring the original interface.";
 		render(
 			<TooltipProvider>
 				<SessionInterfaceSwitchButton
@@ -221,7 +221,7 @@ describe("SessionInterfaceSwitchDialog", () => {
 		);
 
 		const dialog = screen.getByRole("dialog", { name: "Switch to Chat UI?" });
-		expect(dialog).toHaveTextContent("AO cannot verify whether this Terminal is idle.");
+		expect(dialog).toHaveTextContent("Swarm cannot verify whether this Terminal is idle.");
 		expect(within(dialog).queryByRole("button", { name: /^Finish work, then switch/ })).not.toBeInTheDocument();
 		const action = within(dialog).getByRole("button", { name: /^Terminate and then switch/ });
 		expect(onChoose).not.toHaveBeenCalled();
@@ -264,7 +264,7 @@ describe("SessionInterfaceTransitionNotice", () => {
 		"keeps unconfirmed target shutdown visible without unsafe recovery or dismissal actions (%s)",
 		(noticeAcknowledgedAt) => {
 			const detail =
-				"AO could not confirm the target controller stopped. Restart AO to retry shutdown before restoring the original interface. target still running";
+				"Swarm could not confirm the target controller stopped. Restart Swarm to retry shutdown before restoring the original interface. target still running";
 			render(
 				<SessionInterfaceTransitionNotice
 					transition={{
@@ -299,7 +299,7 @@ describe("SessionInterfaceTransitionNotice", () => {
 		);
 
 		expect(screen.getByRole("alert")).toHaveTextContent(
-			"AO could not confirm the target controller stopped. Restart AO to retry shutdown before restoring the original interface.",
+			"Swarm could not confirm the target controller stopped. Restart Swarm to retry shutdown before restoring the original interface.",
 		);
 		expect(screen.queryByText(/original interface remains available/)).not.toBeInTheDocument();
 	});
@@ -457,7 +457,7 @@ describe("SessionInterfaceTransitionNotice", () => {
 		);
 
 		const alert = screen.getByRole("alert");
-		expect(alert).toHaveTextContent("AO cannot verify whether this Terminal is idle.");
+		expect(alert).toHaveTextContent("Swarm cannot verify whether this Terminal is idle.");
 		const action = within(alert).getByRole("button", { name: "Terminate and then switch" });
 		expect(onSwitchWithInterrupt).not.toHaveBeenCalled();
 		fireEvent.click(action);
@@ -500,7 +500,7 @@ describe("SessionInterfaceTransitionNotice", () => {
 describe("a Cloud session that started in the terminal", () => {
 	it.each([
 		["CHAT_ADAPTER_UNAVAILABLE", "Chat for Claude needs the Claude ACP adapter, which this workspace doesn't have yet."],
-		["CHAT_START_UNSUPPORTED", "The AO worker in this workspace is an older version that can't set up Chat for Claude. You can switch this session to Chat."],
+		["CHAT_START_UNSUPPORTED", "The Swarm worker in this workspace is an older version that can't set up Chat for Claude. You can switch this session to Chat."],
 	])("reads as information, not a failed switch (%s)", (errorCode, message) => {
 		const onDismiss = vi.fn();
 		render(

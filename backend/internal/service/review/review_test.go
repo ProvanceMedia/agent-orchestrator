@@ -449,6 +449,87 @@ func TestSubmitEmitsIdempotentReviewResultNotification(t *testing.T) {
 	}
 }
 
+type fakeResultReporter struct {
+	calls []fakeResultReport
+}
+
+type fakeResultReport struct {
+	workerID domain.SessionID
+	runID    string
+	message  string
+}
+
+func (f *fakeResultReporter) CreateReviewResult(_ context.Context, workerID domain.SessionID, runID, message string) (bool, error) {
+	f.calls = append(f.calls, fakeResultReport{workerID: workerID, runID: runID, message: message})
+	return true, nil
+}
+
+// The orchestrator that asked for a review learns the verdict without polling
+// ao review ls. A repeated submit of the same run reports nothing new.
+func TestSubmitReportsTheReviewResultToTheOrchestratorOnce(t *testing.T) {
+	prURL := "https://github.com/acme/app/pull/8"
+	st := &fakeStore{
+		ok: true,
+		run: domain.ReviewRun{
+			ID: "run-1", SessionID: "mer-1", PRURL: prURL, TargetSHA: "9581b8e0123456789", Harness: "claude-code",
+			TriggerSource: domain.ReviewTriggerAgent, Status: domain.ReviewRunRunning,
+		},
+		prs: []domain.PullRequest{{URL: prURL, Number: 8}},
+	}
+	reporter := &fakeResultReporter{}
+	svc := New(nil, st, WithResultReporter(reporter))
+
+	for range 2 {
+		if _, err := svc.Submit(context.Background(), "mer-1", "run-1", domain.VerdictApproved, "looks good", ""); err != nil {
+			t.Fatalf("Submit: %v", err)
+		}
+	}
+	if len(reporter.calls) != 1 {
+		t.Fatalf("result reports = %+v, want exactly one", reporter.calls)
+	}
+	got := reporter.calls[0]
+	if got.workerID != "mer-1" || got.runID != "run-1" {
+		t.Fatalf("result report = %+v, want worker mer-1 run run-1", got)
+	}
+	for _, want := range []string{"PR #8", "approved", "claude-code", "9581b8e", prURL} {
+		if !strings.Contains(got.message, want) {
+			t.Fatalf("message %q does not contain %q", got.message, want)
+		}
+	}
+}
+
+func TestSubmitReportsChangesRequestedToTheOrchestrator(t *testing.T) {
+	st := &fakeStore{ok: true, run: domain.ReviewRun{
+		ID: "run-2", SessionID: "mer-1", PRURL: "pr-2", TriggerSource: domain.ReviewTriggerAuto, Status: domain.ReviewRunRunning,
+	}}
+	reporter := &fakeResultReporter{}
+	svc := New(nil, st, WithResultReporter(reporter))
+
+	if _, err := svc.Submit(context.Background(), "mer-1", "run-2", domain.VerdictChangesRequested, "fix it", ""); err != nil {
+		t.Fatalf("Submit: %v", err)
+	}
+	if len(reporter.calls) != 1 || !strings.Contains(reporter.calls[0].message, "changes requested") {
+		t.Fatalf("result reports = %+v, want one changes requested report", reporter.calls)
+	}
+}
+
+// A person who starts a review from the app sees the result there, so the
+// orchestrator is not told.
+func TestSubmitDoesNotReportManualReviewsToTheOrchestrator(t *testing.T) {
+	st := &fakeStore{ok: true, run: domain.ReviewRun{
+		ID: "run-3", SessionID: "mer-1", PRURL: "pr-3", TriggerSource: domain.ReviewTriggerManual, Status: domain.ReviewRunRunning,
+	}}
+	reporter := &fakeResultReporter{}
+	svc := New(nil, st, WithResultReporter(reporter))
+
+	if _, err := svc.Submit(context.Background(), "mer-1", "run-3", domain.VerdictApproved, "", ""); err != nil {
+		t.Fatalf("Submit: %v", err)
+	}
+	if len(reporter.calls) != 0 {
+		t.Fatalf("result reports = %+v, want none for a manual review", reporter.calls)
+	}
+}
+
 func TestSubmitEmitsChangesRequestedNotification(t *testing.T) {
 	st := &fakeStore{ok: true, run: domain.ReviewRun{
 		ID: "run-2", SessionID: "mer-1", PRURL: "https://github.com/acme/app/pull/43", Status: domain.ReviewRunRunning,

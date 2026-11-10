@@ -3,6 +3,7 @@ import {
 	describeUpdateFailure,
 	displayableUpdateError,
 	isManifest404Error,
+	isNoPublishedReleasesError,
 	looksLikeRawUpdateError,
 	userFacingUpdateError,
 } from "./update-error-message";
@@ -88,6 +89,18 @@ describe("userFacingUpdateError", () => {
 		expect(userFacingUpdateError(err, "check")).toBe(
 			"Couldn't check for updates — the update information was not found on the server.",
 		);
+	});
+
+	it("knows a feed with no release from other failures", () => {
+		// The releases feed of a repository with no release has no <entry>.
+		const fromFeed = Object.assign(new Error("No published versions on GitHub"), { code: "ERR_XML_MISSED_ELEMENT" });
+		const fromApi = Object.assign(new Error("No published versions on GitHub"), { code: "ERR_UPDATER_NO_PUBLISHED_VERSIONS" });
+
+		expect(isNoPublishedReleasesError(fromFeed)).toBe(true);
+		expect(isNoPublishedReleasesError(fromApi)).toBe(true);
+		expect(isNoPublishedReleasesError(new Error("Unable to find latest version on GitHub"))).toBe(false);
+		expect(isNoPublishedReleasesError(new Error("HttpError: 404 latest-mac.yml"))).toBe(false);
+		expect(isNoPublishedReleasesError(undefined)).toBe(false);
 	});
 
 	it("explains a network failure the provider wrapped", () => {

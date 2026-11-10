@@ -16,6 +16,7 @@ import (
 	"github.com/aoagents/agent-orchestrator/backend/internal/httpd/controllers"
 	"github.com/aoagents/agent-orchestrator/backend/internal/ports"
 	"github.com/aoagents/agent-orchestrator/backend/internal/service/computeruse"
+	"github.com/aoagents/agent-orchestrator/backend/internal/service/connections"
 	projectsvc "github.com/aoagents/agent-orchestrator/backend/internal/service/project"
 )
 
@@ -304,6 +305,60 @@ func TestSetupRoutesAreTheOnesThatRunSetup(t *testing.T) {
 	for call, setup := range want {
 		if seen[call] != setup {
 			t.Errorf("setupRoute(%s) = %v, want %v", call, seen[call], setup)
+		}
+	}
+}
+
+// timeoutProbeConnections reports the deadline of the request that reached it.
+type timeoutProbeConnections struct {
+	controllers.Connections
+	budget chan time.Duration
+}
+
+func (p *timeoutProbeConnections) Call(ctx context.Context, _ string, _ connections.CallArgs) (string, error) {
+	p.report(ctx)
+	return "ok", nil
+}
+
+func (p *timeoutProbeConnections) Test(ctx context.Context, _ string) (connections.Result, error) {
+	p.report(ctx)
+	return connections.Result{}, context.Canceled
+}
+
+func (p *timeoutProbeConnections) report(ctx context.Context) {
+	if deadline, ok := ctx.Deadline(); ok {
+		p.budget <- time.Until(deadline)
+	} else {
+		p.budget <- 0
+	}
+}
+
+// A connection call or key check can wait 60 s for the service after a
+// keychain prompt, so both get the two-minute budget.
+func TestConnectionCallAndTestUseExtendedTimeout(t *testing.T) {
+	for _, tc := range []struct{ path, body string }{
+		{"/api/v1/connections/call", `{"tool":"github_api","path":"/user"}`},
+		{"/api/v1/connections/github/test", ``},
+	} {
+		svc := &timeoutProbeConnections{budget: make(chan time.Duration, 1)}
+		router := NewRouterWithControl(
+			config.Config{RequestTimeout: 250 * time.Millisecond},
+			discardLogger(),
+			nil,
+			APIDeps{Connections: svc},
+			ControlDeps{},
+		)
+		req := httptest.NewRequest(http.MethodPost, tc.path, bytes.NewBufferString(tc.body))
+		req.Header.Set("Content-Type", "application/json")
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, req)
+		select {
+		case budget := <-svc.budget:
+			if budget < 119*time.Second || budget > 2*time.Minute {
+				t.Fatalf("%s budget = %s, want about 2 minutes", tc.path, budget)
+			}
+		case <-time.After(time.Second):
+			t.Fatalf("%s never reached the service: status=%d body=%s", tc.path, response.Code, response.Body.String())
 		}
 	}
 }

@@ -164,7 +164,7 @@ describe("app i18next instance", () => {
 		expect(chinese.t("inspector.open")).toBe("打开");
 		expect(chinese.t("inspector.openTerminal")).toBe("打开终端");
 		expect(chinese.t("createProject.gitSetupNotice")).toBe(
-			"如果此文件夹需要设置 Git，AO 会先初始化仓库并创建首次提交，然后再启动。",
+			"如果此文件夹需要设置 Git，Swarm 会先初始化仓库并创建首次提交，然后再启动。",
 		);
 		expect(chinese.t("settings.updates.currentVersion", { version: "v1.2.3" })).toBe("当前版本 - v1.2.3");
 		expect(chinese.t("settings.updates.updateTo", { version: "v1.2.3" })).toBe("更新至 v1.2.3");
@@ -245,7 +245,7 @@ describe("app i18next instance", () => {
 		}
 	});
 
-	it("resolves AO action counts with the Spanish, French, and Brazilian Portuguese many forms", () => {
+	it("resolves Swarm action counts with the Spanish, French, and Brazilian Portuguese many forms", () => {
 		const count = 1_000_000;
 		const bases = Object.keys(enMessages)
 			.filter((key) => key.startsWith("chat.action.") && key.endsWith("_one"))

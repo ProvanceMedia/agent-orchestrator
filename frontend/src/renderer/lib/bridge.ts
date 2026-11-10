@@ -125,17 +125,17 @@ export const aoBridge: AoBridge =
 		cloudShare: {
 			available: async () => false,
 			inspect: async () => {
-				throw new Error("Sharing needs the AO desktop app.");
+				throw new Error("Sharing needs the Swarm desktop app.");
 			},
 			list: async () => {
-				throw new Error("Sharing needs the AO desktop app.");
+				throw new Error("Sharing needs the Swarm desktop app.");
 			},
 			publish: async () => {
-				throw new Error("Sharing needs the AO desktop app.");
+				throw new Error("Sharing needs the Swarm desktop app.");
 			},
 			cancel: async () => undefined,
 			unpublish: async () => {
-				throw new Error("Sharing needs the AO desktop app.");
+				throw new Error("Sharing needs the Swarm desktop app.");
 			},
 			onProgress: () => () => undefined,
 		},
@@ -436,10 +436,10 @@ export const aoBridge: AoBridge =
 			},
 			localAuthAvailable: async () => false,
 			localRegister: async () => {
-				throw new Error("AO Cloud sign-in requires the desktop app.");
+				throw new Error("Swarm Cloud sign-in requires the desktop app.");
 			},
 			localLogin: async () => {
-				throw new Error("AO Cloud sign-in requires the desktop app.");
+				throw new Error("Swarm Cloud sign-in requires the desktop app.");
 			},
 			onSessionChanged: () => () => undefined,
 			onOpenShareLink: () => () => undefined,
@@ -448,14 +448,14 @@ export const aoBridge: AoBridge =
 		},
 		cloudCp: {
 			request: async () => {
-				throw new Error("AO Cloud requests require the desktop app.");
+				throw new Error("Swarm Cloud requests require the desktop app.");
 			},
 			requestBinary: async () => {
-				throw new Error("AO Cloud requests require the desktop app.");
+				throw new Error("Swarm Cloud requests require the desktop app.");
 			},
 			cancelBinary: () => undefined,
 			openStream: async () => {
-				throw new Error("AO Cloud event streams require the desktop app.");
+				throw new Error("Swarm Cloud event streams require the desktop app.");
 			},
 			closeStream: () => undefined,
 			onStreamEvent: () => () => undefined,

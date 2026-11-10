@@ -23,14 +23,14 @@ import { checkMacDmgLayout } from "./scripts/build-mac-dmg.mjs";
 // workflows set AO_RELEASE_REPO to the repo they run in, and build-artifacts.yml
 // asserts the baked app-update.yml matches it, so a future org/repo rename
 // fails the build instead of stranding the fleet on a redirect (#3523).
-const DEFAULT_RELEASE_REPO = "Untrivial-ai/agent-orchestrator";
+const DEFAULT_RELEASE_REPO = "ProvanceMedia/agent-orchestrator";
 
 // The packaged binary name (no extension). Single source of truth: the packager
 // names the exe/ELF from this, and the NSIS + deb makers must point their
 // shortcut/launcher at the SAME name. Drift here means a broken Start menu
 // shortcut on Windows (#2414) or "could not find the Electron app binary" on deb.
 const EXECUTABLE_NAME = "agent-orchestrator";
-export const WINDOWS_DISPLAY_NAME = "Orchestrator.inc";
+export const WINDOWS_DISPLAY_NAME = "Swarm 3.0";
 const AUTH_PROTOCOL = {
 	name: "Orchestrator authentication callback",
 	schemes: ["ao-app"],
@@ -68,7 +68,7 @@ async function prepareNativeDependencies(platform: NodeJS.Platform, arch: string
 // Packager app name. It sets the bundle filename ("<name>.app"), which the
 // installed path, updater, and `ao start` keep using, so it is not the label
 // people see in Finder.
-const PACKAGER_NAME = "Agent Orchestrator";
+const PACKAGER_NAME = "Swarm 3.0";
 
 // Finder uses the localized label only when the base display name matches the
 // bundle filename, but the packager defaults it to the executable name. Set it,
@@ -175,7 +175,7 @@ const config: ForgeConfig = {
 		// runtime dependency tree explicitly; AutoUnpackNativesPlugin then places
 		// the .node binary outside app.asar.
 		ignore: ignoreFromVitePackage,
-		appBundleId: "dev.agent-orchestrator.desktop",
+		appBundleId: "com.provancemedia.swarm3",
 		name: PACKAGER_NAME,
 		executableName: EXECUTABLE_NAME,
 		// Match the Windows installer without changing the executable name.
@@ -192,8 +192,8 @@ const config: ForgeConfig = {
 			// helper's own usage strings and its disclaim. Without the speech key
 			// it kills the helper. The microphone string also covers terminals and
 			// agents, which macOS attributes to this app.
-			NSSpeechRecognitionUsageDescription: "Orchestrator turns your speech into message text.",
-			NSMicrophoneUsageDescription: "Orchestrator uses the microphone for dictation and for tools you run in it.",
+			NSSpeechRecognitionUsageDescription: "Swarm 3.0 turns your speech into message text.",
+			NSMicrophoneUsageDescription: "Swarm 3.0 uses the microphone for dictation and for tools you run in it.",
 		},
 		protocols: [AUTH_PROTOCOL],
 		appCategoryType: "public.app-category.developer-tools",
@@ -378,7 +378,7 @@ const config: ForgeConfig = {
 		// custom install dir or proper uninstaller (issue #401).
 		new MakerNSIS(
 			{
-				appId: "dev.agent-orchestrator.desktop",
+				appId: "com.provancemedia.swarm3",
 				// The name shown in the installer, the updater, the shortcuts, and
 				// Windows Apps. It matches the app's display name in main.ts.
 				productName: WINDOWS_DISPLAY_NAME,
@@ -402,8 +402,8 @@ const config: ForgeConfig = {
 		// break the signature seal on the way in (see makers/maker-dmg.ts, #3267).
 		new MakerDMG(
 			{
-				appId: "dev.agent-orchestrator.desktop",
-				productName: "Agent Orchestrator",
+				appId: "com.provancemedia.swarm3",
+				productName: "Swarm 3.0",
 			},
 			["darwin"],
 		),
@@ -413,9 +413,9 @@ const config: ForgeConfig = {
 		// prefer a system package.
 		new MakerAppImage(
 			{
-				appId: "dev.agent-orchestrator.desktop",
-				productName: "Orchestrator",
-				appImage: { artifactName: "Agent Orchestrator-${version}.${ext}" },
+				appId: "com.provancemedia.swarm3",
+				productName: "Swarm 3.0",
+				appImage: { artifactName: "Swarm 3.0-${version}.${ext}" },
 				icon: "assets/icon.png",
 				protocols: [AUTH_PROTOCOL],
 			},
@@ -431,7 +431,7 @@ const config: ForgeConfig = {
 					bin: EXECUTABLE_NAME,
 					icon: "assets/icon.png",
 					maintainer: appPackage.author,
-					homepage: "https://github.com/aoagents/agent-orchestrator",
+					homepage: "https://github.com/ProvanceMedia/agent-orchestrator",
 					mimeType: [AUTH_PROTOCOL_MIME_TYPE],
 				},
 			},
@@ -443,7 +443,7 @@ const config: ForgeConfig = {
 					icon: "assets/icon.png",
 					// rpmbuild rejects a spec with an empty License field.
 					license: "MIT",
-					homepage: "https://github.com/aoagents/agent-orchestrator",
+					homepage: "https://github.com/ProvanceMedia/agent-orchestrator",
 					mimeType: [AUTH_PROTOCOL_MIME_TYPE],
 				},
 			},

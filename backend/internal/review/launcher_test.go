@@ -11,6 +11,7 @@ import (
 	"time"
 
 	codexreview "github.com/aoagents/agent-orchestrator/backend/internal/adapters/reviewer/codex"
+	"github.com/aoagents/agent-orchestrator/backend/internal/agentlaunch"
 	"github.com/aoagents/agent-orchestrator/backend/internal/domain"
 	"github.com/aoagents/agent-orchestrator/backend/internal/ports"
 	sessionmanager "github.com/aoagents/agent-orchestrator/backend/internal/session_manager"
@@ -114,6 +115,9 @@ func TestLauncherSpawnEnvCannotOverrideWorkerContext(t *testing.T) {
 	if rt.createCfg.Env["AO_REVIEW_HARNESS"] != string(domain.ReviewerClaudeCode) {
 		t.Fatalf("AO_REVIEW_HARNESS = %q, want %q", rt.createCfg.Env["AO_REVIEW_HARNESS"], domain.ReviewerClaudeCode)
 	}
+	if rt.createCfg.Env[agentlaunch.EnvClaudeAIConnectors] != "false" {
+		t.Fatalf("%s = %q, want false: a reviewer must not get the claude.ai connectors", agentlaunch.EnvClaudeAIConnectors, rt.createCfg.Env[agentlaunch.EnvClaudeAIConnectors])
+	}
 	if rt.createCfg.Env[sessionmanager.EnvProjectID] != "mer" {
 		t.Fatalf("%s = %q, want mer", sessionmanager.EnvProjectID, rt.createCfg.Env[sessionmanager.EnvProjectID])
 	}
@@ -211,7 +215,7 @@ func TestLauncherSpawnWarnsWhenPATHPinAndShimFail(t *testing.T) {
 		t.Fatalf("PATH = %q, want original reviewer PATH", rt.createCfg.Env["PATH"])
 	}
 	warning := rt.createCfg.Env[EnvAOCommandWarning]
-	if !strings.Contains(warning, "PATH pin failed") || !strings.Contains(warning, "AO shim fallback failed") || !strings.Contains(warning, "executable unavailable") {
+	if !strings.Contains(warning, "PATH pin failed") || !strings.Contains(warning, "Swarm shim fallback failed") || !strings.Contains(warning, "executable unavailable") {
 		t.Fatalf("%s = %q, want combined PATH/shim warning", EnvAOCommandWarning, warning)
 	}
 }
@@ -667,7 +671,7 @@ func TestLauncherRestoreTerminalStartsIdlePane(t *testing.T) {
 		"verdict: changes_requested",
 		"GitHub review: 484",
 		"Fix the restore path.",
-		"Wait for AO to send the next review task",
+		"Wait for Swarm to send the next review task",
 	} {
 		if !strings.Contains(reviewer.gotInv.Prompt, want) {
 			t.Fatalf("restore prompt missing %q: %q", want, reviewer.gotInv.Prompt)

@@ -295,7 +295,7 @@ func TestGetAgentHooksInstallsSystemPromptInstructions(t *testing.T) {
 	text := string(data)
 	for _, want := range []string{
 		kimiInstructionsSentinel,
-		"# Agent Orchestrator Session Instructions",
+		"# Swarm Session Instructions",
 		"follow AO rules",
 	} {
 		if !strings.Contains(text, want) {
@@ -848,8 +848,8 @@ func TestGetAgentHooksRequiresAOManagedKimiHome(t *testing.T) {
 		WorkspacePath: t.TempDir(),
 	})
 
-	if err == nil || !strings.Contains(err.Error(), "AO-managed Kimi Code home is unavailable") {
-		t.Fatalf("GetAgentHooks err = %v, want AO-managed Kimi home requirement", err)
+	if err == nil || !strings.Contains(err.Error(), "Swarm-managed Kimi Code home is unavailable") {
+		t.Fatalf("GetAgentHooks err = %v, want Swarm-managed Kimi home requirement", err)
 	}
 }
 

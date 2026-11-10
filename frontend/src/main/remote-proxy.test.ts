@@ -425,7 +425,7 @@ describe("startRemoteProxy", () => {
 		expect(seen).toHaveLength(count);
 	});
 
-	it("opens an app preview outside AO over plain http, but never the agent viewer", async () => {
+	it("opens an app preview outside Swarm over plain http, but never the agent viewer", async () => {
 		const { port, seen } = await startUpstream(() => ({ status: 200, body: "ok" }));
 		proxy = await startRemoteProxy({ label: "workbox", url: `http://127.0.0.1:${port}`, password: "pw" });
 		const plainPort = Number(new URL(proxy.base).port);
@@ -583,7 +583,7 @@ describe("startRemoteProxy", () => {
 		proxy = await startRemoteProxy({ hostId: "h_workbox", label: "workbox", url: `http://127.0.0.1:${port}`, password: "secret" });
 		const response = await fetch(`${proxy.base}/api/v1/projects`);
 		expect(response.status).toBe(426);
-		expect(await response.json()).toMatchObject({ code: "HOST_API_INCOMPATIBLE", message: expect.stringContaining("Update AO") });
+		expect(await response.json()).toMatchObject({ code: "HOST_API_INCOMPATIBLE", message: expect.stringContaining("Update Swarm") });
 		expect(seen.map((request) => request.url)).toEqual(["/api/v1/identity"]);
 		expect(seen[0].auth).toBeUndefined();
 	});

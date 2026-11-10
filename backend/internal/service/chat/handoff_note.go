@@ -35,7 +35,7 @@ func (s *Service) SessionTurns(ctx context.Context, id domain.SessionID) ([]doma
 		if readErr != nil {
 			return nil, fmt.Errorf("load conversation %s turns: %w", conversation.ID, readErr)
 		}
-		turns = chatHandoffTurns(rows.Turns, rows.Messages, rows.Activities)
+		turns = chatHandoffTurns(rows.Turns, rows.Messages, rows.Activities, s.sessionIdle(ctx, id))
 	}
 	stored, err := s.store.ListTerminalTurns(ctx, id)
 	if err != nil {
@@ -46,15 +46,32 @@ func (s *Service) SessionTurns(ctx context.Context, id domain.SessionID) ([]doma
 	return turns, nil
 }
 
+// sessionIdle reports whether the session's agent is not working now. It
+// returns false when the session cannot be read.
+func (s *Service) sessionIdle(ctx context.Context, id domain.SessionID) bool {
+	if s.sessions == nil {
+		return false
+	}
+	rec, found, err := s.sessions.GetSession(ctx, id)
+	return err == nil && found && rec.Activity.State != domain.ActivityActive
+}
+
 // chatHandoffTurns reduces a conversation to one request and one final response
 // per completed turn. A request is what a person typed or what was sent to the
 // session through AO; the daemon's own messages are not requests.
+//
+// A turn the agent starts itself has no request. A driver that can tell when
+// such a turn ends records it as a provider-started turn with no user message.
+// Older rows, and drivers that cannot tell, leave its assistant messages with
+// no AO turn and never settle them: each run of those is one turn, answered by
+// its last message, and counts once a later message exists or the agent is
+// idle. Both kinds take domain.AgentStartedTurnRequest as the request.
 //
 // Each turn is credited to the provider that answered it: the one the newest
 // switch marker before it brought in. Turns before the first marker were the
 // first source's. Sequences are the conversation's, so an edit's new branch,
 // whose turns come after the marker of the agent it runs on, is credited too.
-func chatHandoffTurns(turns []domain.ConversationTurn, messages []domain.ConversationMessage, activities []domain.ConversationActivity) []domain.HandoffTurn {
+func chatHandoffTurns(turns []domain.ConversationTurn, messages []domain.ConversationMessage, activities []domain.ConversationActivity, idle bool) []domain.HandoffTurn {
 	type marker struct {
 		sequence int64
 		target   domain.AgentHarness
@@ -83,6 +100,9 @@ func chatHandoffTurns(turns []domain.ConversationTurn, messages []domain.Convers
 	}
 	type exchange struct {
 		user, assistant *domain.ConversationMessage
+		// anyUser is true when the turn has a user message of any origin. A
+		// turn with none was started by the agent, not by a message.
+		anyUser bool
 	}
 	exchanges := make(map[string]*exchange, len(turns))
 	for _, turn := range turns {
@@ -98,6 +118,7 @@ func chatHandoffTurns(turns []domain.ConversationTurn, messages []domain.Convers
 		}
 		switch message.Role {
 		case domain.MessageRoleUser:
+			pair.anyUser = true
 			asked := message.Origin == domain.MessageOriginHuman || message.Origin == domain.MessageOriginAutomation
 			if asked && (pair.user == nil || message.Sequence < pair.user.Sequence) {
 				pair.user = message
@@ -108,18 +129,55 @@ func chatHandoffTurns(turns []domain.ConversationTurn, messages []domain.Convers
 			}
 		}
 	}
-	complete := make([]*exchange, 0, len(exchanges))
+	type sequencedTurn struct {
+		sequence int64
+		turn     domain.HandoffTurn
+	}
+	ordered := make([]sequencedTurn, 0, len(exchanges))
 	for _, pair := range exchanges {
-		if pair.user != nil && pair.assistant != nil && strings.TrimSpace(pair.user.Text) != "" {
-			complete = append(complete, pair)
+		switch {
+		case pair.user != nil && pair.assistant != nil && strings.TrimSpace(pair.user.Text) != "":
+			ordered = append(ordered, sequencedTurn{pair.user.Sequence, domain.HandoffTurn{UserRequest: pair.user.Text, AgentResponse: pair.assistant.Text, At: pair.user.CreatedAt, Harness: answeredBy(pair.user.Sequence)}})
+		case !pair.anyUser && pair.assistant != nil && strings.TrimSpace(pair.assistant.Text) != "":
+			ordered = append(ordered, sequencedTurn{pair.assistant.Sequence, domain.HandoffTurn{UserRequest: domain.AgentStartedTurnRequest, AgentResponse: pair.assistant.Text, At: pair.assistant.CreatedAt, Harness: answeredBy(pair.assistant.Sequence)}})
 		}
 	}
-	sort.Slice(complete, func(i, j int) bool { return complete[i].user.Sequence < complete[j].user.Sequence })
-	out := make([]domain.HandoffTurn, 0, len(complete))
-	for _, pair := range complete {
-		out = append(out, domain.HandoffTurn{UserRequest: pair.user.Text, AgentResponse: pair.assistant.Text, At: pair.user.CreatedAt, Harness: answeredBy(pair.user.Sequence)})
+	for _, run := range agentStartedRuns(messages, idle) {
+		first, last := run[0], run[len(run)-1]
+		ordered = append(ordered, sequencedTurn{first.Sequence, domain.HandoffTurn{UserRequest: domain.AgentStartedTurnRequest, AgentResponse: last.Text, At: first.CreatedAt, Harness: answeredBy(first.Sequence)}})
+	}
+	sort.Slice(ordered, func(i, j int) bool { return ordered[i].sequence < ordered[j].sequence })
+	out := make([]domain.HandoffTurn, 0, len(ordered))
+	for _, item := range ordered {
+		out = append(out, item.turn)
 	}
 	return out
+}
+
+// agentStartedRuns returns each run of consecutive assistant messages that
+// have no AO turn and some text. The newest run is left out while it is still
+// streaming, no later message exists and the agent is not idle.
+func agentStartedRuns(messages []domain.ConversationMessage, idle bool) [][]domain.ConversationMessage {
+	sorted := append([]domain.ConversationMessage(nil), messages...)
+	sort.SliceStable(sorted, func(i, j int) bool { return sorted[i].Sequence < sorted[j].Sequence })
+	var runs [][]domain.ConversationMessage
+	var current []domain.ConversationMessage
+	for index, message := range sorted {
+		if message.TurnID == "" && message.Role == domain.MessageRoleAssistant {
+			if strings.TrimSpace(message.Text) != "" {
+				current = append(current, message)
+			}
+		} else if len(current) > 0 {
+			runs = append(runs, current)
+			current = nil
+		}
+		if index == len(sorted)-1 && len(current) > 0 {
+			if idle || !current[len(current)-1].Streaming {
+				runs = append(runs, current)
+			}
+		}
+	}
+	return runs
 }
 
 // HandoffNote builds the note a provider receives when it takes over record's

@@ -281,7 +281,7 @@ describe("send keys", () => {
 		expect(screen.getByRole("button", { name: "Remove kept.txt" })).toBeInTheDocument();
 		expect(screen.queryByText(/Nothing was attached/)).not.toBeInTheDocument();
 	});
-	it("refuses a file over AO Cloud's limit before it uploads", async () => {
+	it("refuses a file over Swarm Cloud's limit before it uploads", async () => {
 		const stage = vi.fn().mockResolvedValue(["ao-cloud-attachment:a/big.bin"]);
 		const { field } = renderComposer({ draftSessionId: "composer-cloud-limit", onStageAttachments: stage, cloudAttachments: { maxBytes: 25 * 1024 * 1024 } });
 		const big = new File([new Uint8Array(25 * 1024 * 1024 + 1)], "big.bin", { type: "application/octet-stream" });
@@ -1972,7 +1972,7 @@ describe("slash commands", () => {
 		expect(screen.getAllByRole("option")).toHaveLength(3);
 	});
 
-	it("hides the generic agent source and keeps the AO source label", async () => {
+	it("hides the generic agent source and shows the ao source as Swarm", async () => {
 		const { field } = renderComposer({
 			skills: [
 				{ name: "built-in", displayName: "built-in", source: "agent" },
@@ -1982,7 +1982,7 @@ describe("slash commands", () => {
 		await typeInComposer(field, "/");
 
 		expect(screen.queryByText("agent", { exact: true })).toBeNull();
-		expect(screen.getByText("AO", { exact: true })).toBeInTheDocument();
+		expect(screen.getByText("Swarm", { exact: true })).toBeInTheDocument();
 	});
 
 	it("filters as the user types", async () => {

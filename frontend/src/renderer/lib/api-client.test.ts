@@ -194,7 +194,7 @@ describe("apiClient runtime base URL", () => {
 
 		const { error } = await apiClient.GET("/api/v1/projects");
 
-		expect(error).toEqual({ message: "AO daemon is not ready." });
+		expect(error).toEqual({ message: "Swarm daemon is not ready." });
 		expect(getApiBaseUrl()).toBe("");
 		expect(hasTrustedApiBaseUrl()).toBe(false);
 		expect(fetchSpy).not.toHaveBeenCalled();
@@ -326,6 +326,18 @@ describe("normalizeApiOperation", () => {
 		expect(normalizeApiOperation("POST", "/api/v1/projects/initialize")).toBe("POST /api/v1/projects/initialize");
 		expect(normalizeApiOperation("POST", "/api/v1/sessions/cleanup")).toBe("POST /api/v1/sessions/cleanup");
 		expect(normalizeApiOperation("GET", "/api/v1/agents/auth-plans")).toBe("GET /api/v1/agents/auth-plans");
+	});
+
+	it("keeps MCP connection and connector ids out of the reported operation", () => {
+		expect(normalizeApiOperation("PUT", "/api/v1/mcp/connections/mcp_0123456789ab/credentials")).toBe(
+			"PUT /api/v1/mcp/connections/:id/credentials",
+		);
+		expect(normalizeApiOperation("POST", "/api/v1/mcp/connections/mcp_0123456789ab/oauth/start")).toBe(
+			"POST /api/v1/mcp/connections/:id/oauth/start",
+		);
+		expect(normalizeApiOperation("DELETE", "/api/v1/mcp/connections/mcp_0123456789ab")).toBe("DELETE /api/v1/mcp/connections/:id");
+		expect(normalizeApiOperation("GET", "/api/v1/connections/projects")).toBe("GET /api/v1/connections/projects");
+		expect(normalizeApiOperation("PUT", "/api/v1/connections/cloudflare/projects")).toBe("PUT /api/v1/connections/:id/projects");
 	});
 
 	it("normalizes agent ids in authentication routes", () => {

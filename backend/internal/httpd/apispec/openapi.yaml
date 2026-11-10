@@ -2990,6 +2990,367 @@ paths:
         background service, and macOS permissions
       tags:
       - computer-use
+  /api/v1/connections:
+    get:
+      operationId: listConnections
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListConnectionsResponse'
+          description: OK
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Internal Server Error
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Implemented
+      summary: List the services that Swarm can hold an API key for, and which ones
+        are connected; no secret is returned
+      tags:
+      - connections
+  /api/v1/connections/{id}:
+    delete:
+      operationId: disconnectConnection
+      parameters:
+      - description: Connector id, e.g. cloudflare.
+        in: path
+        name: id
+        required: true
+        schema:
+          description: Connector id, e.g. cloudflare.
+          type: string
+      responses:
+        "204":
+          description: No Content
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Internal Server Error
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Implemented
+        "503":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Service Unavailable
+      summary: Remove a service's key from the keychain
+      tags:
+      - connections
+    put:
+      operationId: connectConnection
+      parameters:
+      - description: Connector id, e.g. cloudflare.
+        in: path
+        name: id
+        required: true
+        schema:
+          description: Connector id, e.g. cloudflare.
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectConnectionRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionCheckResponse'
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Bad Request
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Found
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Conflict
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Internal Server Error
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Implemented
+        "503":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Service Unavailable
+      summary: Save a service's key in the macOS keychain and prove it with one cheap
+        call; a failed check puts the old key back
+      tags:
+      - connections
+  /api/v1/connections/{id}/projects:
+    put:
+      operationId: setConnectorProjects
+      parameters:
+      - description: Connector id, e.g. cloudflare.
+        in: path
+        name: id
+        required: true
+        schema:
+          description: Connector id, e.g. cloudflare.
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MCPProjectsRequest'
+        required: true
+      responses:
+        "204":
+          description: No Content
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Bad Request
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Found
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Conflict
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Implemented
+      summary: Choose which projects can use a key-based service
+      tags:
+      - connections
+  /api/v1/connections/{id}/test:
+    post:
+      operationId: testConnection
+      parameters:
+      - description: Connector id, e.g. cloudflare.
+        in: path
+        name: id
+        required: true
+        schema:
+          description: Connector id, e.g. cloudflare.
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionCheckResponse'
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Bad Request
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Found
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Conflict
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Internal Server Error
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Implemented
+        "503":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Service Unavailable
+      summary: Prove a saved key again with one cheap call
+      tags:
+      - connections
+  /api/v1/connections/agent-tools:
+    get:
+      operationId: listConnectionAgentTools
+      parameters:
+      - description: The calling session, for the project grant.
+        in: query
+        name: sessionId
+        schema:
+          description: The calling session, for the project grant.
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionAgentToolsResponse'
+          description: OK
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Implemented
+      summary: List the agent tools of the connected services, with their input schemas,
+        for the ao tool server
+      tags:
+      - connections
+  /api/v1/connections/call:
+    post:
+      operationId: callConnection
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallConnectionRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallConnectionResponse'
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Bad Request
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Found
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Internal Server Error
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Implemented
+        "503":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Service Unavailable
+      summary: Make one API call for an agent with the saved key attached, and return
+        the text the agent reads
+      tags:
+      - connections
+  /api/v1/connections/projects:
+    get:
+      operationId: listConnectorProjects
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectorProjectsResponse'
+          description: OK
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Conflict
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Implemented
+      summary: List which projects can use each key-based service; GitHub stays available
+        to every project
+      tags:
+      - connections
   /api/v1/conversations/search:
     get:
       operationId: searchConversations
@@ -3743,6 +4104,467 @@ paths:
       summary: Fetch link-preview metadata (Open Graph) for an external URL
       tags:
       - link-preview
+  /api/v1/mcp-oauth/callback:
+    get:
+      operationId: finishMCPOAuth
+      responses:
+        "200":
+          content:
+            text/html:
+              schema:
+                type: string
+          description: OK
+        "400":
+          content:
+            text/html:
+              schema:
+                type: string
+          description: Bad Request
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Implemented
+      summary: The browser's redirect back from an MCP sign-in server; answers an
+        HTML page
+      tags:
+      - connections
+  /api/v1/mcp/agent/call:
+    post:
+      operationId: callMCPAgentTool
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MCPAgentRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPAgentReply'
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Bad Request
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Implemented
+      summary: 'connection_call: call one remote tool with the credential added and
+        secrets removed from the result'
+      tags:
+      - connections
+  /api/v1/mcp/agent/index:
+    get:
+      operationId: getMCPAgentIndex
+      parameters:
+      - description: The calling session, for the project grant.
+        in: query
+        name: sessionId
+        schema:
+          description: The calling session, for the project grant.
+          type: string
+      - description: The index version that the caller has.
+        in: query
+        name: known
+        schema:
+          description: The index version that the caller has.
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPAgentIndexResponse'
+          description: OK
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Implemented
+      summary: The real tools of a session's project, for the ao tool server; only
+        the version when it is unchanged
+      tags:
+      - connections
+  /api/v1/mcp/agent/list:
+    post:
+      operationId: listMCPAgentConnections
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MCPAgentRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPAgentReply'
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Bad Request
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Implemented
+      summary: 'connections_list: the MCP connections granted to a session''s project'
+      tags:
+      - connections
+  /api/v1/mcp/agent/tools:
+    post:
+      operationId: listMCPAgentTools
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MCPAgentRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPAgentReply'
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Bad Request
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Implemented
+      summary: 'connection_tools: the tools of one MCP connection, with secrets removed'
+      tags:
+      - connections
+  /api/v1/mcp/check:
+    post:
+      operationId: checkMCPConnection
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MCPCheckRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPCheckResponse'
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Bad Request
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Implemented
+      summary: 'Check link: find what a remote MCP server needs (nothing, a key, or
+        a sign-in) and keep a draft'
+      tags:
+      - connections
+  /api/v1/mcp/connections:
+    get:
+      operationId: listMCPConnections
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPOverviewResponse'
+          description: OK
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Implemented
+      summary: List the remote MCP servers, the known server cards and the projects;
+        no secret is returned
+      tags:
+      - connections
+  /api/v1/mcp/connections/{id}:
+    delete:
+      operationId: removeMCPConnection
+      parameters:
+      - description: MCP connection id, e.g. mcp_0123456789ab.
+        in: path
+        name: id
+        required: true
+        schema:
+          description: MCP connection id, e.g. mcp_0123456789ab.
+          type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Found
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Conflict
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Implemented
+      summary: Remove a remote MCP server and its credentials
+      tags:
+      - connections
+    patch:
+      operationId: renameMCPConnection
+      parameters:
+      - description: MCP connection id, e.g. mcp_0123456789ab.
+        in: path
+        name: id
+        required: true
+        schema:
+          description: MCP connection id, e.g. mcp_0123456789ab.
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MCPRenameRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPProjectsResponse'
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Bad Request
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Implemented
+      summary: Rename a remote MCP server; agents use the name
+      tags:
+      - connections
+  /api/v1/mcp/connections/{id}/credentials:
+    put:
+      operationId: saveMCPCredentials
+      parameters:
+      - description: MCP connection id, e.g. mcp_0123456789ab.
+        in: path
+        name: id
+        required: true
+        schema:
+          description: MCP connection id, e.g. mcp_0123456789ab.
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MCPCredentialsRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPCheckResponse'
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Bad Request
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Implemented
+      summary: Save a key or headers after the server accepts them; a refused key
+        keeps the old one
+      tags:
+      - connections
+  /api/v1/mcp/connections/{id}/oauth/start:
+    post:
+      operationId: startMCPOAuth
+      parameters:
+      - description: MCP connection id, e.g. mcp_0123456789ab.
+        in: path
+        name: id
+        required: true
+        schema:
+          description: MCP connection id, e.g. mcp_0123456789ab.
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MCPOAuthStartRequest'
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPOAuthStartResponse'
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Bad Request
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Implemented
+      summary: Start an OAuth sign-in and return the address to open in the browser
+      tags:
+      - connections
+  /api/v1/mcp/connections/{id}/projects:
+    put:
+      operationId: setMCPProjects
+      parameters:
+      - description: MCP connection id, e.g. mcp_0123456789ab.
+        in: path
+        name: id
+        required: true
+        schema:
+          description: MCP connection id, e.g. mcp_0123456789ab.
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MCPProjectsRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPProjectsResponse'
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Bad Request
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Implemented
+      summary: Choose which projects can use a remote MCP server; the connection becomes
+        active here
+      tags:
+      - connections
+  /api/v1/mcp/connections/{id}/refresh:
+    post:
+      operationId: refreshMCPTools
+      parameters:
+      - description: MCP connection id, e.g. mcp_0123456789ab.
+        in: path
+        name: id
+        required: true
+        schema:
+          description: MCP connection id, e.g. mcp_0123456789ab.
+          type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPCheckResponse'
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Bad Request
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Implemented
+      summary: Read the tool list of a remote MCP server again
+      tags:
+      - connections
+  /api/v1/mcp/paste:
+    post:
+      operationId: pasteMCPConfig
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MCPPasteRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPPasteResponse'
+          description: OK
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Bad Request
+        "501":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+          description: Not Implemented
+      summary: Make drafts from a pasted mcpServers config; only URLs and header names
+        are kept
+      tags:
+      - connections
   /api/v1/mobile/browser-control:
     post:
       operationId: setMobileBrowserRemoteAccess
@@ -15089,6 +15911,38 @@ components:
       - transport
       - target
       type: object
+    CallConnectionRequest:
+      properties:
+        body:
+          description: Request body as a string.
+          type: string
+        fields:
+          description: Comma-separated fields to keep from each row of a list.
+          type: string
+        method:
+          description: HTTP method. Defaults to GET.
+          type: string
+        path:
+          description: API path after the base URL, with any query string.
+          type: string
+        sessionId:
+          description: The calling session, for the project grant.
+          type: string
+        tool:
+          description: Agent tool name, e.g. cloudflare_api.
+          type: string
+      required:
+      - tool
+      - path
+      type: object
+    CallConnectionResponse:
+      properties:
+        text:
+          description: The status line and the response body, as the agent reads it.
+          type: string
+      required:
+      - text
+      type: object
     CancelReviewResponse:
       properties:
         reviewerHandleId:
@@ -16079,6 +16933,139 @@ components:
       - updateAvailable
       - daemon
       - imageDirectory
+      type: object
+    ConnectConnectionRequest:
+      properties:
+        values:
+          additionalProperties:
+            type: string
+          description: Field values by field key. A blank secret keeps the saved one.
+          type:
+          - object
+          - "null"
+      required:
+      - values
+      type: object
+    ConnectionAgentTool:
+      properties:
+        description:
+          type: string
+        inputSchema:
+          additionalProperties: {}
+          type:
+          - object
+          - "null"
+        name:
+          type: string
+      required:
+      - name
+      - description
+      - inputSchema
+      type: object
+    ConnectionAgentToolsResponse:
+      properties:
+        tools:
+          items:
+            $ref: '#/components/schemas/ConnectionAgentTool'
+          type: array
+      required:
+      - tools
+      type: object
+    ConnectionCheckResponse:
+      properties:
+        connection:
+          $ref: '#/components/schemas/ConnectionResponse'
+          description: The connection's state after the check.
+        detail:
+          description: The service's reason when it rejected the key.
+          type: string
+        ok:
+          description: Whether the service accepted the key.
+          type: boolean
+      required:
+      - ok
+      - detail
+      - connection
+      type: object
+    ConnectionField:
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        optional:
+          type: boolean
+        placeholder:
+          type: string
+        secret:
+          type: boolean
+      required:
+      - key
+      - label
+      type: object
+    ConnectionResponse:
+      properties:
+        blurb:
+          description: One line on what the connection unlocks.
+          type: string
+        connected:
+          description: Whether a key is saved.
+          type: boolean
+        connectedAt:
+          description: When the key was saved.
+          format: date-time
+          type:
+          - "null"
+          - string
+        fields:
+          description: Values that the user gives. A secret field is never sent back.
+          items:
+            $ref: '#/components/schemas/ConnectionField'
+          type: array
+        id:
+          description: Connector id, e.g. cloudflare.
+          type: string
+        keyUrl:
+          description: Where the user makes the key.
+          type: string
+        name:
+          description: Display name of the service.
+          type: string
+        tail:
+          description: Last 4 characters of the saved key.
+          type: string
+        tint:
+          description: Card monogram colour as a hex value.
+          type: string
+        tool:
+          description: Name of the agent tool that the connection gives, e.g. cloudflare_api.
+          type: string
+        values:
+          additionalProperties:
+            type: string
+          description: Saved values of the non-secret fields.
+          type: object
+      required:
+      - id
+      - name
+      - tool
+      - blurb
+      - tint
+      - keyUrl
+      - fields
+      - connected
+      type: object
+    ConnectorProjectsResponse:
+      properties:
+        projects:
+          additionalProperties:
+            $ref: '#/components/schemas/MCPProjects'
+          description: The project grant of each key-based service except GitHub.
+          type:
+          - object
+          - "null"
+      required:
+      - projects
       type: object
     ConsumeAgentAccountResetCreditRequest:
       properties:
@@ -18564,6 +19551,19 @@ components:
       required:
       - sessions
       type: object
+    ListConnectionsResponse:
+      properties:
+        available:
+          description: Whether this build can keep keys (macOS keychain).
+          type: boolean
+        connections:
+          items:
+            $ref: '#/components/schemas/ConnectionResponse'
+          type: array
+      required:
+      - available
+      - connections
+      type: object
     ListCuesResponse:
       properties:
         cues:
@@ -18822,6 +19822,385 @@ components:
       - path
       - entries
       - truncated
+      type: object
+    MCPAgentIndexResponse:
+      properties:
+        connections:
+          items:
+            $ref: '#/components/schemas/MCPIndexConnection'
+          type: array
+        unchanged:
+          description: True when the caller's version is current; then only the version
+            is sent.
+          type: boolean
+        version:
+          type: string
+      required:
+      - version
+      - connections
+      type: object
+    MCPAgentReply:
+      properties:
+        result: {}
+      required:
+      - result
+      type: object
+    MCPAgentRequest:
+      properties:
+        arguments:
+          description: The tool arguments, as an object.
+        name:
+          description: The connection name.
+          type: string
+        sessionId:
+          description: The calling session, for the project grant.
+          type: string
+        tool:
+          description: The remote tool name.
+          type: string
+      type: object
+    MCPApp:
+      properties:
+        auth:
+          type: string
+        description:
+          type: string
+        guidance:
+          type: string
+        key:
+          type: string
+        keyUrl:
+          type: string
+        name:
+          type: string
+        tint:
+          type: string
+        url:
+          type: string
+      required:
+      - key
+      - name
+      - description
+      - url
+      - auth
+      - guidance
+      - tint
+      type: object
+    MCPCheckRequest:
+      properties:
+        appKey:
+          type: string
+        id:
+          type: string
+        name:
+          type: string
+        url:
+          type: string
+      type: object
+    MCPCheckResponse:
+      properties:
+        connection:
+          $ref: '#/components/schemas/MCPConnectionView'
+        error:
+          type: string
+        field:
+          type: string
+        id:
+          type: string
+        ok:
+          type: boolean
+        outcome:
+          type: string
+      required:
+      - ok
+      - outcome
+      type: object
+    MCPConnectionView:
+      properties:
+        appKey:
+          type: string
+        authKind:
+          type: string
+        createdAt:
+          format: int64
+          type: integer
+        headerNames:
+          items:
+            type: string
+          type: array
+        health:
+          type: string
+        id:
+          type: string
+        lastError:
+          type: string
+        name:
+          type: string
+        oauth:
+          $ref: '#/components/schemas/MCPOAuthView'
+        projects:
+          anyOf:
+          - type: "null"
+          - $ref: '#/components/schemas/MCPProjects'
+            type: object
+        secrets:
+          additionalProperties:
+            type: string
+          type:
+          - object
+          - "null"
+        tools:
+          items:
+            $ref: '#/components/schemas/MCPTool'
+          type: array
+        toolsFetchedAt:
+          type:
+          - "null"
+          - integer
+        updatedAt:
+          format: int64
+          type: integer
+        url:
+          type: string
+        urlHasSecret:
+          type: boolean
+      required:
+      - id
+      - name
+      - url
+      - urlHasSecret
+      - authKind
+      - headerNames
+      - secrets
+      - tools
+      - health
+      - projects
+      - createdAt
+      - updatedAt
+      type: object
+    MCPCredentialsRequest:
+      properties:
+        headers:
+          items:
+            $ref: '#/components/schemas/MCPHeader'
+          type: array
+        key:
+          type: string
+      type: object
+    MCPHeader:
+      properties:
+        name:
+          type: string
+        value:
+          type: string
+      required:
+      - name
+      - value
+      type: object
+    MCPIndexConnection:
+      properties:
+        description:
+          type: string
+        health:
+          type: string
+        left:
+          type: integer
+        name:
+          type: string
+        prefix:
+          type: string
+        tools:
+          items:
+            $ref: '#/components/schemas/MCPRealTool'
+          type: array
+      required:
+      - name
+      - prefix
+      - description
+      - health
+      - left
+      - tools
+      type: object
+    MCPOAuthStartRequest:
+      properties:
+        clientId:
+          description: A client id that the owner typed, for a server with no client
+            registration.
+          type: string
+        clientSecret:
+          description: The secret of that client, if it has one.
+          type: string
+      type: object
+    MCPOAuthStartResponse:
+      properties:
+        error:
+          type: string
+        manualClient:
+          type: boolean
+        ok:
+          type: boolean
+        url:
+          type: string
+      required:
+      - ok
+      type: object
+    MCPOAuthView:
+      properties:
+        clientId:
+          type: string
+        issuer:
+          type: string
+        manualClient:
+          type: boolean
+        scopes:
+          items:
+            type: string
+          type: array
+        status:
+          type: string
+      required:
+      - issuer
+      - clientId
+      - scopes
+      - status
+      - manualClient
+      type: object
+    MCPOverviewResponse:
+      properties:
+        apps:
+          items:
+            $ref: '#/components/schemas/MCPApp'
+          type: array
+        available:
+          type: boolean
+        connections:
+          items:
+            $ref: '#/components/schemas/MCPConnectionView'
+          type: array
+        projects:
+          items:
+            type: string
+          type: array
+        store:
+          $ref: '#/components/schemas/MCPStoreStatus'
+      required:
+      - available
+      - connections
+      - store
+      - apps
+      - projects
+      type: object
+    MCPPasteRefusal:
+      properties:
+        error:
+          type: string
+        name:
+          type: string
+      required:
+      - name
+      - error
+      type: object
+    MCPPasteRequest:
+      properties:
+        text:
+          description: JSON with an mcpServers object. Only URLs and header names
+            are kept.
+          type: string
+      required:
+      - text
+      type: object
+    MCPPasteResponse:
+      properties:
+        drafts:
+          items:
+            $ref: '#/components/schemas/MCPConnectionView'
+          type: array
+        error:
+          type: string
+        ok:
+          type: boolean
+        refused:
+          items:
+            $ref: '#/components/schemas/MCPPasteRefusal'
+          type: array
+      required:
+      - ok
+      - drafts
+      - refused
+      type: object
+    MCPProjects:
+      oneOf:
+      - type: string
+      - items:
+          type: string
+        type: array
+      type: object
+    MCPProjectsRequest:
+      properties:
+        projects:
+          anyOf:
+          - type: "null"
+          - $ref: '#/components/schemas/MCPProjects'
+            type: object
+          description: '"all", or a list of project ids.'
+      required:
+      - projects
+      type: object
+    MCPProjectsResponse:
+      properties:
+        connection:
+          $ref: '#/components/schemas/MCPConnectionView'
+        error:
+          type: string
+        ok:
+          type: boolean
+      required:
+      - ok
+      type: object
+    MCPRealTool:
+      properties:
+        description:
+          type: string
+        inputSchema: {}
+        remote:
+          type: string
+        tool:
+          type: string
+      required:
+      - tool
+      - remote
+      - description
+      - inputSchema
+      type: object
+    MCPRenameRequest:
+      properties:
+        name:
+          description: The name that agents use.
+          type: string
+      required:
+      - name
+      type: object
+    MCPStoreStatus:
+      properties:
+        broken:
+          type: boolean
+        unreadable:
+          type: integer
+      required:
+      - broken
+      - unreadable
+      type: object
+    MCPTool:
+      properties:
+        description:
+          type: string
+        inputSchema: {}
+        name:
+          type: string
+      required:
+      - name
+      - description
+      - inputSchema
       type: object
     MarkAllNotificationsReadRequest:
       properties:
@@ -20615,6 +21994,11 @@ components:
       type: object
     SessionPRReviewSummary:
       properties:
+        aoVerdict:
+          enum:
+          - approved
+          - changes_requested
+          type: string
         decision:
           enum:
           - none
@@ -23523,6 +24907,9 @@ tags:
 - description: Cua Driver computer-use integration behind Settings and the agents'
     computer-use tools (loopback only)
   name: computer-use
+- description: API keys of third-party services in the macOS keychain, and the agents'
+    passthrough calls (loopback only)
+  name: connections
 - description: Server-side unfurl of external links for the CSP-locked renderer
   name: link-preview
 - description: Local GitHub personal access token storage and repository listing

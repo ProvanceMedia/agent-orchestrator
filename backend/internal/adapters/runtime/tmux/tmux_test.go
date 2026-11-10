@@ -907,6 +907,8 @@ func TestIsAliveKeepsAmbiguousNamedSocketFailureInNamedNamespace(t *testing.T) {
 func TestIsAliveReportsMissingLegacyClientAsProbeInconclusive(t *testing.T) {
 	r := New(Options{Binary: "bundled-tmux-test", SocketName: "ao", Timeout: time.Second})
 	r.legacyBinary = ""
+	// A legacy default server may still hold the session, but no client can ask it.
+	r.legacySocketPresent = func() bool { return true }
 	fr := &fakeRunnerSequence{results: []fakeRunnerResult{
 		{out: []byte("can't find session: sess-1"), err: &exec.ExitError{}},
 	}}
@@ -921,6 +923,54 @@ func TestIsAliveReportsMissingLegacyClientAsProbeInconclusive(t *testing.T) {
 	}
 	if len(fr.calls) != 1 {
 		t.Fatalf("calls = %d, want only the private-socket probe", len(fr.calls))
+	}
+}
+
+// Issue OrchestratorInc/agent-orchestrator#6649: with no system tmux and no
+// legacy default socket, no legacy session can exist, so the private socket is
+// the only place to look.
+func TestIsAliveWithoutLegacyClientOrSocketResolvesOnPrivateSocket(t *testing.T) {
+	r := New(Options{Binary: "bundled-tmux-test", SocketName: "ao", Timeout: time.Second})
+	r.legacyBinary = ""
+	r.legacySocketPresent = func() bool { return false }
+	fr := &fakeRunnerSequence{results: []fakeRunnerResult{
+		{out: []byte("can't find session: sess-1"), err: &exec.ExitError{}},
+	}}
+	r.runner = fr
+
+	alive, err := r.IsAlive(context.Background(), ports.RuntimeHandle{ID: "sess-1"})
+	if err != nil {
+		t.Fatalf("IsAlive err = %v, want nil for a session missing on the only socket", err)
+	}
+	if alive {
+		t.Fatal("alive = true, want false")
+	}
+	for i, call := range fr.calls {
+		if call.name != "bundled-tmux-test" || len(call.args) < 2 || call.args[0] != "-L" || call.args[1] != "ao" {
+			t.Fatalf("call %d = %s %#v, want the bundled client on the private socket", i, call.name, call.args)
+		}
+	}
+}
+
+// The reviewer replaces a stale pane with Destroy before each launch. On a
+// machine with no system tmux and no tmux server running, that must succeed.
+func TestDestroyWithoutLegacyClientOrSocketTreatsAbsentServerAsGone(t *testing.T) {
+	r := New(Options{Binary: "bundled-tmux-test", SocketName: "ao", Timeout: time.Second})
+	r.legacyBinary = ""
+	r.legacySocketPresent = func() bool { return false }
+	r.reapSessions = (&recordingReaper{}).reap
+	fr := &fakeRunnerSequence{results: []fakeRunnerResult{
+		{out: []byte("no server running on /private/tmp/tmux-501/ao"), err: &exec.ExitError{}},
+	}}
+	r.runner = fr
+
+	if err := r.Destroy(context.Background(), ports.RuntimeHandle{ID: "review-sess-1"}); err != nil {
+		t.Fatalf("Destroy err = %v, want nil when no tmux server can hold the session", err)
+	}
+	for i, call := range fr.calls {
+		if call.name != "bundled-tmux-test" {
+			t.Fatalf("call %d binary = %q, want only the bundled client", i, call.name)
+		}
 	}
 }
 

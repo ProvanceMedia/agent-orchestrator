@@ -1065,7 +1065,7 @@ describe("shell quit confirm subscription", () => {
 		act(() => listener({ keepsRunning: true }));
 		fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
 		expect(shellMocks.resolveQuitConfirm).toHaveBeenLastCalledWith(false);
-		await waitFor(() => expect(screen.queryByRole("dialog", { name: "Quit AO?" })).not.toBeInTheDocument());
+		await waitFor(() => expect(screen.queryByRole("dialog", { name: "Quit Swarm?" })).not.toBeInTheDocument());
 
 		act(() => listener({ keepsRunning: true }));
 		fireEvent.click(await screen.findByRole("button", { name: "Quit" }));
@@ -1074,21 +1074,21 @@ describe("shell quit confirm subscription", () => {
 		expect(screen.getByTestId("daemon-startup-loader")).toBeInTheDocument();
 	});
 
-	it("opens the Quit AO? dialog on request and reports the answer to the main process", async () => {
+	it("opens the Quit Swarm? dialog on request and reports the answer to the main process", async () => {
 		await renderShell();
 
 		const listener = shellMocks.state.quitConfirmListener;
 		if (!listener) throw new Error("quit confirm listener was not registered");
 		act(() => listener({ keepsRunning: true }));
 		expect(
-			await screen.findByText("AO will keep running in the background. You can reopen it from the menu bar."),
+			await screen.findByText("Swarm will keep running in the background. You can reopen it from the menu bar."),
 		).toBeInTheDocument();
 		fireEvent.click(screen.getByRole("button", { name: "Quit" }));
 		expect(shellMocks.resolveQuitConfirm).toHaveBeenCalledExactlyOnceWith(true);
-		await waitFor(() => expect(screen.queryByRole("dialog", { name: "Quit AO?" })).not.toBeInTheDocument());
+		await waitFor(() => expect(screen.queryByRole("dialog", { name: "Quit Swarm?" })).not.toBeInTheDocument());
 
 		act(() => listener({ keepsRunning: false }));
-		expect(await screen.findByText("Are you sure you want to quit AO?")).toBeInTheDocument();
+		expect(await screen.findByText("Are you sure you want to quit Swarm?")).toBeInTheDocument();
 		fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 		expect(shellMocks.resolveQuitConfirm).toHaveBeenLastCalledWith(false);
 	});

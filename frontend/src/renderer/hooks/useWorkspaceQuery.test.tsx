@@ -229,7 +229,7 @@ describe("useWorkspaceQuery", () => {
 		const { result } = renderHook(() => useWorkspaceQuery(), { wrapper });
 
 		await waitFor(() => expect(result.current.isError).toBe(true));
-		expect(result.current.error).toEqual(new Error("AO daemon API is not ready"));
+		expect(result.current.error).toEqual(new Error("Swarm daemon API is not ready"));
 		expect(getMock).not.toHaveBeenCalled();
 	});
 
@@ -817,7 +817,7 @@ describe("useWorkspaceQuery", () => {
 });
 
 describe("useWorkspaceScope board presentation", () => {
-	it("reads a hosted session without contacting the laptop or AO Cloud", async () => {
+	it("reads a hosted session without contacting the laptop or Swarm Cloud", async () => {
 		cloudState.ready = true;
 		cloudState.org = { id: "org-1" };
 		remoteGetMock.mockImplementation(async (path: string) => path.endsWith("/projects")

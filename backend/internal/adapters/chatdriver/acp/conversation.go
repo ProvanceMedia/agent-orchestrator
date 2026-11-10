@@ -158,6 +158,13 @@ type conversation struct {
 	historyReconciler func([]ports.ChatEvent) []ports.ChatEvent
 	// plansSpanTurns: see Config.PlansSpanTurns.
 	plansSpanTurns bool
+	// agentStartedTurns: see Config.AgentStartedTurns. agentTurn is the open
+	// turn the driver made for an agent-started cycle, or "".
+	agentStartedTurns bool
+	agentTurn         string
+	// sdkState is the agent SDK's last reported session state ("running" or
+	// "idle"), or "" before the first report.
+	sdkState string
 	// preamble is standing context attached to the first prompt that actually
 	// reaches the provider. It is the delivery channel for agents that accept no
 	// system-prompt launch flag and ignore session/new _meta but do execute
@@ -446,6 +453,14 @@ func (c *conversation) ActivateLiveReconnect(ctx context.Context, providerTurnID
 	if !c.proc.reconnected || c.liveState == nil || c.proc.gate == nil {
 		return nil
 	}
+	// An agent-started turn has no prompt behind it, so the host never reports
+	// it, and this reattached connection gets no cycle-end notifications to end
+	// it. Complete it once the reader runs, so AO is not left busy behind it.
+	orphanAgentTurn := ""
+	if isAgentTurnID(providerTurnID) {
+		orphanAgentTurn = providerTurnID
+		providerTurnID = ""
+	}
 	durableBusy := strings.TrimSpace(providerTurnID) != ""
 	switch {
 	case c.liveState.ActivePrompt && !durableBusy:
@@ -482,6 +497,13 @@ func (c *conversation) ActivateLiveReconnect(ctx context.Context, providerTurnID
 	}
 	c.mu.Unlock()
 	c.proc.gate.Open()
+	if orphanAgentTurn != "" {
+		// Not inline: the controller reads events only after this returns.
+		go func() {
+			c.emit(ports.ChatEvent{Kind: ports.ChatEventTurnCompleted, ProviderTurnID: orphanAgentTurn, TurnState: domain.TurnStateCompleted})
+			c.emit(ports.ChatEvent{Kind: ports.ChatEventControllerState, ControllerState: ports.ChatControllerReady})
+		}()
+	}
 	return nil
 }
 
